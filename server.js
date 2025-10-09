@@ -28,7 +28,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files FIRST - this is critical for Render deployment
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: 'index.html',
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // Initialize Socket.IO with HTTP server (Render handles SSL termination)
 const io = socketIo(server, {
@@ -339,8 +348,13 @@ app.get('/room/:roomId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'room.html'));
 });
 
-// Catch-all route for any undefined routes - redirect to home
-app.get('*', (req, res) => {
+// Handle 404 errors properly - serve index.html for SPA routing
+app.use((req, res, next) => {
+  // If it's an API request, let it 404 normally
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  // For all other requests, serve index.html
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
