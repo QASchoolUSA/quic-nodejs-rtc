@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: quic-rtc-meet
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGIN
+        value: "*"
+    healthCheckPath: /
