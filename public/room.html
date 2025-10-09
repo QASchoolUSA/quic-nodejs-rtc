@@ -9,24 +9,52 @@
 <body class="room-page">
     <div id="app" class="room-container">
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid">
-            <div class="video-container local-video">
-                <video ref="localVideo" autoplay muted playsinline></video>
-                <div class="video-label">{{ localUserName || 'You' }}</div>
-            </div>
-            <!-- Remote videos will be added dynamically -->
-            <div 
-                v-for="peer in remotePeers" 
-                :key="peer.id" 
-                class="video-container remote-video"
-            >
-                <video 
-                    :ref="`remoteVideo-${peer.id}`"
-                    autoplay 
-                    playsinline
-                ></video>
-                <div class="video-label">{{ peer.username || 'Participant' }}</div>
-            </div>
+        <div :class="['video-grid', viewMode]" ref="videoGrid">
+            <!-- Grid View -->
+            <template v-if="viewMode === 'grid'">
+                <div class="video-container local-video">
+                    <video ref="localVideo" autoplay muted playsinline></video>
+                    <div class="video-label">{{ localUserName || 'You' }}</div>
+                </div>
+                <!-- Remote videos will be added dynamically -->
+                <div 
+                    v-for="peer in remotePeers" 
+                    :key="peer.id" 
+                    class="video-container remote-video"
+                    @click="focusOnPeer(peer.id)"
+                >
+                    <video 
+                        :ref="`remoteVideo-${peer.id}`"
+                        autoplay 
+                        playsinline
+                    ></video>
+                    <div class="video-label">{{ peer.username || 'Participant' }}</div>
+                </div>
+            </template>
+
+            <!-- Focus View -->
+            <template v-if="viewMode === 'focus'">
+                <div class="focused-video-container">
+                    <div 
+                        v-if="focusedPeerId && remotePeers.find(p => p.id === focusedPeerId)"
+                        class="video-container focused-video"
+                        @click="cycleFocusedPeer"
+                    >
+                        <video 
+                            :ref="`remoteVideo-${focusedPeerId}`"
+                            autoplay 
+                            playsinline
+                        ></video>
+                        <div class="video-label">{{ remotePeers.find(p => p.id === focusedPeerId)?.username || 'Participant' }}</div>
+                    </div>
+                    
+                    <!-- Small local video in corner -->
+                    <div class="video-container local-video-small">
+                        <video ref="localVideo" autoplay muted playsinline></video>
+                        <div class="video-label">{{ localUserName || 'You' }}</div>
+                    </div>
+                </div>
+            </template>
         </div>
 
         <!-- Controls -->
@@ -72,7 +100,19 @@
                 </svg>
             </button>
 
-
+            <button 
+                @click="toggleViewMode" 
+                :class="['control-btn', 'view-toggle']" 
+                :title="viewMode === 'grid' ? 'Switch to Focus View' : 'Switch to Grid View'"
+                v-if="remotePeers.length > 0"
+            >
+                <svg v-if="viewMode === 'grid'" class="grid-icon" viewBox="0 0 24 24">
+                    <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm-6 4v8h8v-8h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/>
+                </svg>
+                <svg v-else class="focus-icon" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </button>
 
             <button 
                 @click="hangUp" 
@@ -83,22 +123,6 @@
                     <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
                 </svg>
             </button>
-        </div>
-
-
-
-        <!-- Room Info -->
-        <div class="room-info">
-            <span>Room: {{ roomId }}</span>
-            <span>{{ participantCount }} participant{{ participantCount !== 1 ? 's' : '' }}</span>
-            <button @click="copyRoomLink" class="copy-link-btn" title="Copy room link">
-                📋
-            </button>
-        </div>
-
-        <!-- Connection Status -->
-        <div v-if="connectionStatus" :class="['connection-status', connectionStatus.type]">
-            {{ connectionStatus.message }}
         </div>
     </div>
 

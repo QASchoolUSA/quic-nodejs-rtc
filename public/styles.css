@@ -346,12 +346,53 @@ input[type="text"]:focus {
     grid-auto-rows: minmax(200px, 1fr);
 }
 
+/* Focus View Styles */
+.video-grid.focus {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.focused-video-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.focused-video {
+    width: 80%;
+    height: 80%;
+    max-width: 1200px;
+    max-height: 800px;
+    cursor: pointer;
+}
+
+.local-video-small {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    z-index: 10;
+    border: 2px solid #667eea;
+}
+
 .video-container {
     position: relative;
     background: #2a2a2a;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.video-container:hover {
+    transform: scale(1.02);
 }
 
 .video-container video {
@@ -440,6 +481,14 @@ input[type="text"]:focus {
 
 .control-btn.camera-switch:hover {
     background: #F57C00;
+}
+
+.control-btn.view-toggle {
+    background: #9C27B0;
+}
+
+.control-btn.view-toggle:hover {
+    background: #7B1FA2;
 }
 
 .control-btn.active {

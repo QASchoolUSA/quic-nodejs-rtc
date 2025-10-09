@@ -16,6 +16,10 @@ createApp({
             availableCameras: [],
             currentCameraIndex: 0,
             
+            // View mode
+            viewMode: 'grid', // 'grid' or 'focus'
+            focusedPeerId: null,
+            
             // Peers
             remotePeers: [],
             
@@ -62,8 +66,14 @@ createApp({
         initWebRTC() {
             this.webrtcClient = new WebRTCClient();
             
-            // Set up event listeners for Vue.js integration
+            // Set up event listeners for WebRTC events
+            this.webrtcClient.on('remoteStream', (data) => {
+                console.log('Remote stream received:', data);
+                this.addRemotePeer(data.userId, data.stream, data.username || 'Participant');
+            });
+            
             this.webrtcClient.on('localStream', (stream) => {
+                console.log('Local stream received:', stream);
                 this.$nextTick(() => {
                     const localVideo = this.$refs.localVideo;
                     if (localVideo) {
@@ -71,36 +81,39 @@ createApp({
                     }
                 });
             });
-
-            this.webrtcClient.on('remoteStream', ({ userId, stream }) => {
-                this.remotePeers[userId] = {
-                    stream: stream,
-                    label: `User ${userId.substring(0, 8)}`
-                };
+            
+            this.webrtcClient.on('localStreamUpdated', (stream) => {
+                console.log('Local stream updated:', stream);
+                this.$nextTick(() => {
+                    const localVideo = this.$refs.localVideo;
+                    if (localVideo) {
+                        localVideo.srcObject = stream;
+                    }
+                });
             });
-
+            
             this.webrtcClient.on('peerRemoved', (userId) => {
-                delete this.remotePeers[userId];
+                console.log('Peer removed:', userId);
+                this.removeRemotePeer(userId);
             });
-
-            this.webrtcClient.on('error', (message) => {
-                this.connectionStatus = {
-                    type: 'error',
-                    message: message
-                };
+            
+            this.webrtcClient.on('participantJoined', (data) => {
+                console.log('Participant joined:', data);
+                this.participantCount = data.participantCount || this.participantCount + 1;
             });
-
+            
+            this.webrtcClient.on('participantLeft', (data) => {
+                console.log('Participant left:', data);
+                this.participantCount = Math.max(1, this.participantCount - 1);
+            });
+            
             // Initialize WebRTC
             this.webrtcClient.init().then(() => {
-                this.connectionStatus = {
-                    type: 'success',
-                    message: 'Connected to server'
-                };
-            }).catch((error) => {
-                this.connectionStatus = {
-                    type: 'error',
-                    message: 'Failed to initialize: ' + error.message
-                };
+                console.log('WebRTC client initialized');
+                this.showConnectionStatus('Connected to server', 'success');
+            }).catch(error => {
+                console.error('Failed to initialize WebRTC:', error);
+                this.showConnectionStatus('Failed to connect', 'error');
             });
         },
         
@@ -158,11 +171,33 @@ createApp({
                 // Switch camera in WebRTC client
                 if (this.webrtcClient) {
                     await this.webrtcClient.switchCamera(selectedCamera.deviceId);
+                    this.showConnectionStatus(`Switched to ${selectedCamera.label || 'Camera ' + (this.currentCameraIndex + 1)}`, 'success');
                 }
             } catch (error) {
                 console.error('Error switching camera:', error);
                 this.showConnectionStatus('Failed to switch camera', 'error');
             }
+        },
+
+        // View mode management
+        toggleViewMode() {
+            this.viewMode = this.viewMode === 'grid' ? 'focus' : 'grid';
+            if (this.viewMode === 'focus' && this.remotePeers.length > 0) {
+                this.focusedPeerId = this.focusedPeerId || this.remotePeers[0].id;
+            }
+        },
+
+        focusOnPeer(peerId) {
+            this.viewMode = 'focus';
+            this.focusedPeerId = peerId;
+        },
+
+        cycleFocusedPeer() {
+            if (this.remotePeers.length === 0) return;
+            
+            const currentIndex = this.remotePeers.findIndex(p => p.id === this.focusedPeerId);
+            const nextIndex = (currentIndex + 1) % this.remotePeers.length;
+            this.focusedPeerId = this.remotePeers[nextIndex].id;
         },
         
 
@@ -177,14 +212,20 @@ createApp({
                 this.remotePeers.push({
                     id: peerId,
                     stream,
-                    username
+                    username: username || 'Participant'
                 });
             }
+            
+            // Update participant count
+            this.participantCount = this.remotePeers.length + 1;
             
             this.$nextTick(() => {
                 const videoElement = this.$refs[`remoteVideo-${peerId}`];
                 if (videoElement && videoElement[0]) {
                     videoElement[0].srcObject = stream;
+                    console.log(`Video stream assigned to remote video element for peer ${peerId}`);
+                } else {
+                    console.warn(`Could not find video element for peer ${peerId}`);
                 }
             });
         },
@@ -193,6 +234,8 @@ createApp({
             const index = this.remotePeers.findIndex(p => p.id === peerId);
             if (index !== -1) {
                 this.remotePeers.splice(index, 1);
+                // Update participant count
+                this.participantCount = this.remotePeers.length + 1;
             }
         },
         

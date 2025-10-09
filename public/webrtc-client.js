@@ -435,11 +435,8 @@ class WebRTCClient {
                 this.localStream = newStream;
             }
             
-            // Update local video element
-            const localVideo = document.getElementById('localVideo');
-            if (localVideo) {
-                localVideo.srcObject = this.localStream;
-            }
+            // Emit local stream update for Vue.js to handle video element update
+            this.emit('localStreamUpdated', this.localStream);
             
             // Replace video track for all peer connections
             this.peers.forEach(async (peer) => {
