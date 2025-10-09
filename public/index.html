@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIC-RTC Meet</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app" class="container">
+        <header>
+            <h1>🚀 QUIC-RTC Meet</h1>
+            <p>High-performance video conferencing with QUIC protocol</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Start a Meeting</h2>
+                <div class="form-group">
+                    <label for="username">Your Name:</label>
+                    <input 
+                        type="text" 
+                        v-model="username" 
+                        placeholder="Enter your name" 
+                        required
+                        @keyup.enter="handleEnterKey"
+                    >
+                </div>
+                
+                <div class="button-group">
+                    <button 
+                        @click="createRoom" 
+                        class="btn btn-primary"
+                        :disabled="isLoading || !username.trim()"
+                    >
+                        {{ isLoading ? 'Creating...' : 'Create New Room' }}
+                    </button>
+                    <div class="divider">or</div>
+                    <div class="join-section">
+                        <input 
+                            type="text" 
+                            v-model="roomId" 
+                            placeholder="Enter Room ID"
+                            @keyup.enter="joinRoom"
+                        >
+                        <button 
+                            @click="joinRoom" 
+                            class="btn btn-secondary"
+                            :disabled="isLoading || !username.trim() || !roomId.trim()"
+                        >
+                            {{ isLoading ? 'Joining...' : 'Join Room' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Success/Error Messages -->
+                <div v-if="message.text" :class="['message', message.type]">
+                    {{ message.text }}
+                </div>
+            </div>
+
+            <div class="features">
+                <h3>Features</h3>
+                <ul>
+                    <li>✅ Low-latency video calls with QUIC protocol</li>
+                    <li>✅ Simple interface: mic, video, and hang up controls</li>
+                    <li>✅ Camera switching for multiple cameras</li>
+                    <li>✅ End-to-end encryption</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="app-vue.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIC-RTC Meeting Room</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="room-page">
+    <div id="app" class="room-container">
+        <!-- Video Grid -->
+        <div class="video-grid" ref="videoGrid">
+            <div class="video-container local-video">
+                <video ref="localVideo" autoplay muted playsinline></video>
+                <div class="video-label">{{ localUserName || 'You' }}</div>
+            </div>
+            <!-- Remote videos will be added dynamically -->
+            <div 
+                v-for="peer in remotePeers" 
+                :key="peer.id" 
+                class="video-container remote-video"
+            >
+                <video 
+                    :ref="`remoteVideo-${peer.id}`"
+                    autoplay 
+                    playsinline
+                ></video>
+                <div class="video-label">{{ peer.username || 'Participant' }}</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button 
+                @click="toggleMicrophone" 
+                :class="['control-btn', micEnabled ? 'mic-on' : 'mic-off']" 
+                title="Toggle Microphone"
+            >
+                <svg v-if="micEnabled" class="mic-icon" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+                <svg v-else class="mic-off-icon" viewBox="0 0 24 24">
+                    <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c.57-.08 1.12-.23 1.64-.46l2.36 2.36L21 18.73 4.27 3z"/>
+                </svg>
+            </button>
+
+            <button 
+                @click="toggleVideo" 
+                :class="['control-btn', videoEnabled ? 'video-on' : 'video-off']" 
+                title="Toggle Video"
+            >
+                <svg v-if="videoEnabled" class="video-icon" viewBox="0 0 24 24">
+                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+                <svg v-else class="video-off-icon" viewBox="0 0 24 24">
+                    <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82l8.18 8.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+                </svg>
+            </button>
+
+            <button 
+                @click="switchCamera" 
+                :class="['control-btn', 'camera-switch']" 
+                title="Switch Camera"
+                v-if="availableCameras.length > 1"
+            >
+                <svg class="camera-switch-icon" viewBox="0 0 24 24">
+                    <path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                    <path d="M12 8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                    <path d="M16.5 6.5c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5z"/>
+                    <path d="M19 10l-2 2 2 2v-4z" transform="rotate(90 18 12)"/>
+                </svg>
+            </button>
+
+
+
+            <button 
+                @click="hangUp" 
+                class="control-btn hang-up" 
+                title="Leave Meeting"
+            >
+                <svg class="hang-up-icon" viewBox="0 0 24 24">
+                    <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+                </svg>
+            </button>
+        </div>
+
+
+
+        <!-- Room Info -->
+        <div class="room-info">
+            <span>Room: {{ roomId }}</span>
+            <span>{{ participantCount }} participant{{ participantCount !== 1 ? 's' : '' }}</span>
+            <button @click="copyRoomLink" class="copy-link-btn" title="Copy room link">
+                📋
+            </button>
+        </div>
+
+        <!-- Connection Status -->
+        <div v-if="connectionStatus" :class="['connection-status', connectionStatus.type]">
+            {{ connectionStatus.message }}
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="crypto-client.js"></script>
+    <script src="webrtc-client.js"></script>
+    <script src="room-vue.js"></script>
+</body>
+</html>
