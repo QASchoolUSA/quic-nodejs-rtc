@@ -402,6 +402,8 @@ class WebRTCClient {
     // Camera switching
     async switchCamera(deviceId) {
         try {
+            console.log('WebRTC switchCamera called with deviceId:', deviceId);
+            
             // Store the new camera device ID
             this.currentCameraDeviceId = deviceId;
             
@@ -410,46 +412,59 @@ class WebRTCClient {
                 const videoTrack = this.localStream.getVideoTracks()[0];
                 if (videoTrack) {
                     videoTrack.stop();
+                    console.log('Stopped current video track');
                 }
             }
             
             // Get new stream with selected camera
             const constraints = {
-                audio: true,
+                audio: this.isAudioEnabled,
                 video: { deviceId: { exact: deviceId } }
             };
             
+            console.log('Getting new stream with constraints:', constraints);
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
             const newVideoTrack = newStream.getVideoTracks()[0];
+            const newAudioTrack = newStream.getAudioTracks()[0];
             
             // Update local stream
             if (this.localStream) {
-                // Replace video track in local stream
-                const audioTrack = this.localStream.getAudioTracks()[0];
+                // Create new stream with existing audio state and new video
+                const oldAudioTrack = this.localStream.getAudioTracks()[0];
                 this.localStream = new MediaStream();
-                if (audioTrack) {
-                    this.localStream.addTrack(audioTrack);
+                
+                // Add audio track (preserve existing audio or use new one)
+                if (oldAudioTrack && oldAudioTrack.readyState === 'live') {
+                    this.localStream.addTrack(oldAudioTrack);
+                } else if (newAudioTrack) {
+                    this.localStream.addTrack(newAudioTrack);
                 }
+                
+                // Add new video track
                 this.localStream.addTrack(newVideoTrack);
             } else {
                 this.localStream = newStream;
             }
             
+            console.log('Updated local stream with new video track');
+            
             // Emit local stream update for Vue.js to handle video element update
             this.emit('localStreamUpdated', this.localStream);
             
             // Replace video track for all peer connections
-            this.peers.forEach(async (peer) => {
+            const replacePromises = [];
+            this.peers.forEach((peer) => {
                 const sender = peer.peerConnection.getSenders().find(s => 
                     s.track && s.track.kind === 'video'
                 );
                 
                 if (sender) {
-                    await sender.replaceTrack(newVideoTrack);
+                    replacePromises.push(sender.replaceTrack(newVideoTrack));
                 }
             });
             
-            console.log('Camera switched successfully');
+            await Promise.all(replacePromises);
+            console.log('Camera switched successfully for all peer connections');
             return true;
         } catch (error) {
             console.error('Error switching camera:', error);

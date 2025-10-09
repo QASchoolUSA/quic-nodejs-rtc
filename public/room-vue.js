@@ -149,9 +149,17 @@ createApp({
         // Camera switching
         async getAvailableCameras() {
             try {
+                // Request permissions first to get proper device labels
+                await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 this.availableCameras = devices.filter(device => device.kind === 'videoinput');
-                console.log('Available cameras:', this.availableCameras.length);
+                console.log('Available cameras:', this.availableCameras.map(cam => ({ id: cam.deviceId, label: cam.label })));
+                
+                // Set initial camera if not set
+                if (this.availableCameras.length > 0 && !this.webrtcClient.currentCameraDeviceId) {
+                    this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
+                }
             } catch (error) {
                 console.error('Error getting available cameras:', error);
                 this.availableCameras = [];
@@ -159,23 +167,32 @@ createApp({
         },
 
         async switchCamera() {
-            if (this.availableCameras.length <= 1) return;
+            console.log('Switch camera called, available cameras:', this.availableCameras.length);
+            
+            if (this.availableCameras.length <= 1) {
+                console.log('Not enough cameras to switch');
+                this.showConnectionStatus('No additional cameras available', 'error');
+                return;
+            }
             
             try {
                 // Cycle to next camera
                 this.currentCameraIndex = (this.currentCameraIndex + 1) % this.availableCameras.length;
                 const selectedCamera = this.availableCameras[this.currentCameraIndex];
                 
-                console.log('Switching to camera:', selectedCamera.label || `Camera ${this.currentCameraIndex + 1}`);
+                console.log('Switching to camera:', selectedCamera.label || `Camera ${this.currentCameraIndex + 1}`, 'Device ID:', selectedCamera.deviceId);
                 
                 // Switch camera in WebRTC client
                 if (this.webrtcClient) {
                     await this.webrtcClient.switchCamera(selectedCamera.deviceId);
                     this.showConnectionStatus(`Switched to ${selectedCamera.label || 'Camera ' + (this.currentCameraIndex + 1)}`, 'success');
+                } else {
+                    console.error('WebRTC client not available');
+                    this.showConnectionStatus('WebRTC client not available', 'error');
                 }
             } catch (error) {
                 console.error('Error switching camera:', error);
-                this.showConnectionStatus('Failed to switch camera', 'error');
+                this.showConnectionStatus('Failed to switch camera: ' + error.message, 'error');
             }
         },
 
