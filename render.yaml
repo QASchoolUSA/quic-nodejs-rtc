@@ -3,6 +3,7 @@ services:
     name: quic-rtc-meet
     env: node
     plan: free
+    rootDir: .
     buildCommand: npm install
     startCommand: npm start
     envVars:
