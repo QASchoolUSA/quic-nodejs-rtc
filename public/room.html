@@ -8,10 +8,25 @@
 </head>
 <body class="room-page">
     <div id="app" class="room-container">
+        <!-- Loading State -->
+        <div v-if="isInitializing" class="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p>Initializing video call...</p>
+            </div>
+        </div>
+
         <!-- Video Grid -->
         <div class="video-grid" ref="videoGrid">
             <div class="video-container local-video">
-                <video ref="localVideo" autoplay muted playsinline></video>
+                <video 
+                    ref="localVideo" 
+                    autoplay 
+                    muted 
+                    playsinline
+                    preload="none"
+                    style="object-fit: cover; width: 100%; height: 100%;"
+                ></video>
                 <div class="video-label">{{ localUserName || 'You' }}</div>
             </div>
             <!-- Remote videos will be added dynamically -->
@@ -24,6 +39,8 @@
                     :ref="`remoteVideo-${peer.id}`"
                     autoplay 
                     playsinline
+                    preload="none"
+                    style="object-fit: cover; width: 100%; height: 100%;"
                 ></video>
                 <div class="video-label">{{ peer.username || 'Participant' }}</div>
             </div>
@@ -43,6 +60,38 @@
                         <li>Check if your browser supports WebRTC</li>
                     </ul>
                     <button @click="retryConnection" class="retry-btn">Retry Connection</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remote Controls for Room Creator -->
+        <div v-if="isRoomCreator && showRemoteControls" class="remote-controls-overlay">
+            <div class="remote-controls">
+                <div class="remote-controls-header">
+                    <h3>👥 Control Participants</h3>
+                    <button @click="toggleRemoteControls" class="close-btn">✕</button>
+                </div>
+                
+                <div v-for="peer in remotePeers" :key="peer.id" class="peer-controls">
+                    <h4>{{ peer.username || 'Participant' }}</h4>
+                    <div class="control-buttons">
+                        <button @click="controlRemoteVideo(peer.id, true)" class="control-btn video-btn">
+                            📹 Turn On Video
+                        </button>
+                        <button @click="controlRemoteVideo(peer.id, false)" class="control-btn video-btn">
+                            📹 Turn Off Video
+                        </button>
+                        <button @click="controlRemoteAudio(peer.id, true)" class="control-btn audio-btn">
+                            🎤 Turn On Mic
+                        </button>
+                        <button @click="controlRemoteAudio(peer.id, false)" class="control-btn audio-btn">
+                            🎤 Turn Off Mic
+                        </button>
+                    </div>
+                </div>
+                
+                <div v-if="remotePeers.length === 0" class="no-participants">
+                    <p>No other participants to control yet.</p>
                 </div>
             </div>
         </div>
@@ -166,6 +215,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/webtransport-client.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="crypto-client.js"></script>
     <script src="webrtc-client.js"></script>

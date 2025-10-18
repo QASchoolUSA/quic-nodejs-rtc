@@ -54,7 +54,7 @@ createApp({
                 if (data.success) {
                     this.showMessage('Room created successfully! Redirecting...', 'success');
                     setTimeout(() => {
-                        window.location.href = `room.html?room=${data.roomId}&username=${encodeURIComponent(this.username.trim())}`;
+                        window.location.href = `room.html?room=${data.roomId}&username=${encodeURIComponent(this.username.trim())}&creator=true`;
                     }, 1000);
                 } else {
                     throw new Error(data.message || 'Failed to create room');

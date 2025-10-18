@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const helmet = require('helmet');
 const CryptoUtils = require('./crypto-utils');
+const WebTransportServer = require('./webtransport-server');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,9 @@ const server = http.createServer(app);
 
 // Initialize crypto utilities
 const cryptoUtils = new CryptoUtils();
+
+// Initialize WebTransport server
+const webTransportServer = new WebTransportServer(3001);
 
 // Security middleware
 app.use(helmet({
@@ -66,8 +70,9 @@ const users = new Map();
 const roomKeys = new Map(); // Store room-specific encryption keys
 
 class Room {
-  constructor(id) {
+  constructor(id, creatorId) {
     this.id = id;
+    this.creatorId = creatorId; // Track who created the room
     this.participants = new Map();
     this.createdAt = new Date();
     
@@ -121,7 +126,7 @@ io.on('connection', (socket) => {
 
   // Join room
   socket.on('join-room', (data) => {
-    const { roomId, userData } = data;
+    const { roomId, userData, isCreator } = data;
     
     if (!roomId) {
       socket.emit('error', { message: 'Room ID is required' });
@@ -130,7 +135,7 @@ io.on('connection', (socket) => {
 
     // Create room if it doesn't exist
     if (!rooms.has(roomId)) {
-      rooms.set(roomId, new Room(roomId));
+      rooms.set(roomId, new Room(roomId, socket.id));
     }
 
     const room = rooms.get(roomId);
@@ -248,14 +253,40 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Screen sharing
-  socket.on('screen-share-start', () => {
+  // Remote control events for elderly assistance
+  socket.on('remote-control-video', (data) => {
     const user = users.get(socket.id);
     if (user) {
-      const { roomId } = user;
-      socket.to(roomId).emit('screen-share-start', {
-        userId: socket.id
-      });
+      const room = rooms.get(user.roomId);
+      // Only allow room creator to control others
+      if (room && room.creatorId === socket.id) {
+        const { targetUserId, enable } = data;
+        socket.to(targetUserId).emit('remote-control-video', {
+          fromUserId: socket.id,
+          enable: enable
+        });
+        console.log(`Room creator ${socket.id} ${enable ? 'enabled' : 'disabled'} video for ${targetUserId}`);
+      } else {
+        socket.emit('error', { message: 'Only room creator can control participants' });
+      }
+    }
+  });
+
+  socket.on('remote-control-audio', (data) => {
+    const user = users.get(socket.id);
+    if (user) {
+      const room = rooms.get(user.roomId);
+      // Only allow room creator to control others
+      if (room && room.creatorId === socket.id) {
+        const { targetUserId, enable } = data;
+        socket.to(targetUserId).emit('remote-control-audio', {
+          fromUserId: socket.id,
+          enable: enable
+        });
+        console.log(`Room creator ${socket.id} ${enable ? 'enabled' : 'disabled'} audio for ${targetUserId}`);
+      } else {
+        socket.emit('error', { message: 'Only room creator can control participants' });
+      }
     }
   });
 
@@ -361,11 +392,15 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Start WebTransport server
+webTransportServer.start().catch(console.error);
+
 // Start the server (Render will handle HTTPS automatically)
 server.listen(PORT, HOST, () => {
-  console.log(`🚀 QUIC-RTC Server running on http://${HOST}:${PORT}`);
-  console.log(`📹 Video conferencing with QUIC support enabled`);
+  console.log(`🚀 WebRTC Server running on http://${HOST}:${PORT}`);
+  console.log(`📹 Video conferencing with WebTransport (QUIC) support enabled`);
   console.log(`🔐 End-to-end encryption active`);
+  console.log(`🌐 WebTransport server running on port 3001`);
   console.log(`🌐 Ready for Render deployment`);
 });
 

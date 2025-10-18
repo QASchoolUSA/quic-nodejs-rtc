@@ -10,7 +10,7 @@ createApp({
             
             // Media controls
             micEnabled: true,
-            videoEnabled: true,
+            videoEnabled: false,
             
             // Camera switching
             availableCameras: [],
@@ -28,6 +28,7 @@ createApp({
             
             // Connection
             connectionStatus: null,
+            isInitializing: true,
             
             // WebRTC client
             webrtcClient: null
@@ -39,30 +40,39 @@ createApp({
             this.roomId = urlParams.get('room') || 'default-room';
             this.localUserName = localStorage.getItem('username') || 'Anonymous';
             
-            // Initialize WebRTC
+            // Initialize WebRTC immediately without delay
             this.initWebRTC();
             
             // Get available cameras and microphones
             await this.getAvailableCameras();
             await this.getAvailableMics();
             
-            // Join room after initialization
-            setTimeout(() => {
-                this.joinRoom();
-            }, 1000);
+            // Join room immediately
+            this.joinRoom();
             
             // Set up event listeners
             this.setupEventListeners();
+            
+            // Mark initialization as complete
+            this.isInitializing = false;
         },
     methods: {
         // Join room
         joinRoom() {
             if (this.webrtcClient) {
-                this.webrtcClient.joinRoom(this.roomId, { name: this.localUserName });
-                this.connectionStatus = {
-                    type: 'info',
-                    message: 'Joining room...'
-                };
+                // Check if this is a room creator (first person to join)
+                const urlParams = new URLSearchParams(window.location.search);
+                this.isRoomCreator = urlParams.get('creator') === 'true';
+                
+                this.webrtcClient.joinRoom(this.roomId, { 
+                    name: this.localUserName,
+                    isCreator: this.isRoomCreator 
+                });
+                // Don't show connection status immediately to prevent flash
+                // this.connectionStatus = {
+                //     type: 'info',
+                //     message: 'Joining room...'
+                // };
             }
         },
 
@@ -478,25 +488,22 @@ createApp({
             }
         },
 
-        // Retry connection
-        async retryConnection() {
-            this.connectionStatus = null;
-            this.showConnectionStatus('Retrying connection...', 'info');
-            
-            try {
-                // Reinitialize WebRTC
-                this.initWebRTC();
-                
-                // Re-get available devices
-                await this.getAvailableCameras();
-                await this.getAvailableMics();
-                
-                this.showConnectionStatus('Connection retried successfully', 'success');
-            } catch (error) {
-                console.error('Retry failed:', error);
-                this.showConnectionStatus('Retry failed: ' + error.message, 'error');
+        // Remote control methods for room creator
+        toggleRemoteControls() {
+            this.showRemoteControls = !this.showRemoteControls;
+        },
+
+        controlRemoteVideo(peerId, enable) {
+            if (this.webrtcClient && this.isRoomCreator) {
+                this.webrtcClient.sendRemoteControl(peerId, 'video', enable);
             }
-        }
+        },
+
+        controlRemoteAudio(peerId, enable) {
+            if (this.webrtcClient && this.isRoomCreator) {
+                this.webrtcClient.sendRemoteControl(peerId, 'audio', enable);
+            }
+        },
     },
     
     beforeUnmount() {
