@@ -17,7 +17,7 @@
         </div>
 
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid">
+        <div class="video-grid" ref="videoGrid" :class="{ 'fullscreen-active': fullscreenPeerId }">
             <div class="video-container local-video"
                  @dblclick="enterFullscreen('local')"
                  :class="{ 'fullscreen': fullscreenPeerId === 'local', 'hidden': fullscreenPeerId && fullscreenPeerId !== 'local' }">

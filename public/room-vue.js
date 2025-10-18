@@ -473,6 +473,7 @@ createApp({
 
         exitFullscreen() {
             this.fullscreenPeerId = null;
+            this.updateVideoGridLayout();
         },
 
         // Remote control methods for room creator
