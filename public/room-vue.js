@@ -17,6 +17,11 @@ createApp({
             currentCameraIndex: 0,
             showCameraDropdown: false,
             
+            // Microphone switching
+            availableMics: [],
+            currentMicIndex: 0,
+            showMicDropdown: false,
+            
             // View mode
             viewMode: 'grid', // 'grid' or 'focus'
             focusedPeerId: null,
@@ -40,8 +45,9 @@ createApp({
             // Initialize WebRTC
             this.initWebRTC();
             
-            // Get available cameras
+            // Get available cameras and microphones
             await this.getAvailableCameras();
+            await this.getAvailableMics();
             
             // Join room after initialization
             setTimeout(() => {
@@ -133,10 +139,13 @@ createApp({
                 }
             });
             
-            // Handle clicks outside camera dropdown
+            // Handle clicks outside dropdowns
             document.addEventListener('click', (event) => {
-                if (this.showCameraDropdown && !event.target.closest('.video-camera-control')) {
+                if (this.showCameraDropdown && !event.target.closest('.control-group')) {
                     this.showCameraDropdown = false;
+                }
+                if (this.showMicDropdown && !event.target.closest('.control-group')) {
+                    this.showMicDropdown = false;
                 }
             });
         },
@@ -174,9 +183,42 @@ createApp({
             }
         },
 
+        // Microphone switching
+        async getAvailableMics() {
+            try {
+                // Request permissions first to get proper device labels
+                await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                this.availableMics = devices.filter(device => device.kind === 'audioinput');
+                console.log('Available microphones:', this.availableMics.map(mic => ({ id: mic.deviceId, label: mic.label })));
+                
+                // Set initial microphone if not set
+                if (this.availableMics.length > 0 && !this.webrtcClient.currentMicDeviceId) {
+                    this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
+                }
+            } catch (error) {
+                console.error('Error getting available microphones:', error);
+                this.availableMics = [];
+            }
+        },
+
         // Camera dropdown methods
         toggleCameraDropdown() {
             this.showCameraDropdown = !this.showCameraDropdown;
+            // Close mic dropdown when opening camera dropdown
+            if (this.showCameraDropdown) {
+                this.showMicDropdown = false;
+            }
+        },
+
+        // Microphone dropdown methods
+        toggleMicDropdown() {
+            this.showMicDropdown = !this.showMicDropdown;
+            // Close camera dropdown when opening mic dropdown
+            if (this.showMicDropdown) {
+                this.showCameraDropdown = false;
+            }
         },
 
         async selectCamera(cameraIndex) {
@@ -204,6 +246,34 @@ createApp({
             } catch (error) {
                 console.error('Error switching camera:', error);
                 this.showConnectionStatus('Failed to switch camera: ' + error.message, 'error');
+            }
+        },
+
+        async selectMic(micIndex) {
+            if (micIndex === this.currentMicIndex) {
+                this.showMicDropdown = false;
+                return;
+            }
+
+            try {
+                this.currentMicIndex = micIndex;
+                const selectedMic = this.availableMics[micIndex];
+                
+                console.log('Switching to microphone:', selectedMic.label || `Microphone ${micIndex + 1}`, 'Device ID:', selectedMic.deviceId);
+                
+                // Switch microphone in WebRTC client
+                if (this.webrtcClient) {
+                    await this.webrtcClient.switchMicrophone(selectedMic.deviceId);
+                    this.showConnectionStatus(`Switched to ${selectedMic.label || 'Microphone ' + (micIndex + 1)}`, 'success');
+                } else {
+                    console.error('WebRTC client not available');
+                    this.showConnectionStatus('WebRTC client not available', 'error');
+                }
+                
+                this.showMicDropdown = false;
+            } catch (error) {
+                console.error('Error switching microphone:', error);
+                this.showConnectionStatus('Failed to switch microphone: ' + error.message, 'error');
             }
         },
 

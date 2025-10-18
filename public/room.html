@@ -59,25 +59,63 @@
 
         <!-- Controls -->
         <div class="controls">
-            <button 
-                @click="toggleMicrophone" 
-                :class="['control-btn', micEnabled ? 'mic-on' : 'mic-off']" 
-                title="Toggle Microphone"
-            >
-                <svg v-if="micEnabled" class="mic-icon" viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-                <svg v-else class="mic-off-icon" viewBox="0 0 24 24">
-                    <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c.57-.08 1.12-.23 1.64-.46l2.36 2.36L21 18.73 4.27 3z"/>
-                </svg>
-            </button>
+            <!-- Microphone Control Group -->
+            <div class="control-group">
+                <button 
+                    @click="toggleMicrophone" 
+                    :class="['control-btn', 'main-btn', micEnabled ? 'mic-on' : 'mic-off']" 
+                    title="Toggle Microphone"
+                >
+                    <svg v-if="micEnabled" class="mic-icon" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    <svg v-else class="mic-off-icon" viewBox="0 0 24 24">
+                        <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c.57-.08 1.12-.23 1.64-.46l2.36 2.36L21 18.73 4.27 3z"/>
+                    </svg>
+                </button>
+                
+                <button 
+                    v-if="availableMics.length > 1"
+                    @click="toggleMicDropdown" 
+                    class="control-btn secondary-btn mic-switcher" 
+                    title="Switch Microphone"
+                >
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24">
+                        <path d="M7 10l5 5 5-5z"/>
+                    </svg>
+                </button>
+                
+                <!-- Microphone Dropdown -->
+                <div v-if="showMicDropdown && availableMics.length > 1" 
+                     class="mic-dropdown"
+                     @click.stop
+                >
+                    <div class="dropdown-header">
+                        <span>Select Microphone</span>
+                        <button @click="toggleMicDropdown" class="close-dropdown">×</button>
+                    </div>
+                    <div class="mic-list">
+                        <div 
+                            v-for="(mic, index) in availableMics" 
+                            :key="mic.deviceId"
+                            :class="['mic-option', { 'active': index === currentMicIndex }]"
+                            @click="selectMic(index)"
+                        >
+                            <div class="mic-info">
+                                <span class="mic-name">{{ mic.label || `Microphone ${index + 1}` }}</span>
+                                <span v-if="index === currentMicIndex" class="current-indicator">Current</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <!-- Combined Video/Camera Control -->
-            <div class="video-camera-control" :class="{ 'has-dropdown': availableCameras.length > 1 }">
+            <!-- Video Control Group -->
+            <div class="control-group">
                 <button 
                     @click="toggleVideo" 
-                    :class="['control-btn', 'video-camera-btn', videoEnabled ? 'video-on' : 'video-off']" 
+                    :class="['control-btn', 'main-btn', videoEnabled ? 'video-on' : 'video-off']" 
                     title="Toggle Video"
                 >
                     <svg v-if="videoEnabled" class="video-icon" viewBox="0 0 24 24">
@@ -86,13 +124,15 @@
                     <svg v-else class="video-off-icon" viewBox="0 0 24 24">
                         <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82l8.18 8.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
                     </svg>
-                    
-                    <!-- Dropdown Arrow -->
-                    <svg v-if="availableCameras.length > 1" 
-                         class="dropdown-arrow" 
-                         viewBox="0 0 24 24"
-                         @click.stop="toggleCameraDropdown"
-                    >
+                </button>
+                
+                <button 
+                    v-if="availableCameras.length > 1"
+                    @click="toggleCameraDropdown" 
+                    class="control-btn secondary-btn camera-switcher" 
+                    title="Switch Camera"
+                >
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24">
                         <path d="M7 10l5 5 5-5z"/>
                     </svg>
                 </button>

@@ -528,35 +528,70 @@ header h1 {
 .controls {
     display: flex;
     justify-content: center;
-    gap: 1rem;
+    align-items: center;
+    gap: 1.5rem;
     padding: 2rem;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
 }
 
+.control-group {
+    display: flex;
+    align-items: center;
+    background: rgba(42, 42, 42, 0.6);
+    border-radius: 30px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
 .control-btn {
-    width: 60px;
-    height: 60px;
     border: none;
     border-radius: 50%;
-    background: #3a3a3a;
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+}
+
+.control-btn.main-btn {
+    width: 60px;
+    height: 60px;
+    background: #3a3a3a;
+}
+
+.control-btn.secondary-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(71, 85, 105, 0.6);
+    margin-left: 4px;
+    border-radius: 20px;
 }
 
 .control-btn:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
+}
+
+.control-btn.main-btn:hover {
     background: #4a4a4a;
+}
+
+.control-btn.secondary-btn:hover {
+    background: rgba(71, 85, 105, 0.8);
 }
 
 .control-btn svg {
     width: 24px;
     height: 24px;
     fill: currentColor;
+}
+
+.control-btn.secondary-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .control-btn.mic-on {
@@ -577,45 +612,18 @@ header h1 {
 
 .control-btn.hang-up {
     background: #f44336;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
 }
 
 .control-btn.hang-up:hover {
     background: #d32f2f;
 }
 
-/* Combined Video/Camera Control */
-.video-camera-control {
-    position: relative;
-    display: inline-block;
-}
-
-.video-camera-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-.video-camera-btn.has-dropdown {
-    padding-right: 8px;
-}
-
-.dropdown-arrow {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-    opacity: 0.7;
-    transition: transform 0.2s ease;
-    cursor: pointer;
-}
-
-.video-camera-control.has-dropdown:hover .dropdown-arrow {
-    opacity: 1;
-    transform: translateY(-1px);
-}
-
-.camera-dropdown {
+/* Dropdown Styles */
+.camera-dropdown,
+.mic-dropdown {
     position: absolute;
     bottom: 70px;
     left: 50%;
@@ -661,32 +669,38 @@ header h1 {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.camera-list {
+.camera-list,
+.mic-list {
     padding: 8px 0;
 }
 
-.camera-option {
+.camera-option,
+.mic-option {
     padding: 12px 16px;
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-radius: 0;
 }
 
-.camera-option:hover {
+.camera-option:hover,
+.mic-option:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.camera-option.active {
+.camera-option.active,
+.mic-option.active {
     background-color: rgba(102, 126, 234, 0.2);
 }
 
-.camera-info {
+.camera-info,
+.mic-info {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.camera-name {
+.camera-name,
+.mic-name {
     font-size: 0.9rem;
     font-weight: 500;
 }
@@ -937,9 +951,24 @@ header h1 {
         z-index: 100;
     }
     
-    .control-btn {
+    .control-btn.main-btn {
         width: 50px;
         height: 50px;
+    }
+    
+    .control-btn.secondary-btn {
+        width: 35px;
+        height: 35px;
+        margin-left: 3px;
+    }
+    
+    .control-btn.secondary-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .control-group {
+        padding: 3px;
     }
     
     .chat-panel {
@@ -1025,14 +1054,29 @@ header h1 {
         gap: 0.3rem;
     }
     
-    .control-btn {
+    .control-btn.main-btn {
         width: 45px;
         height: 45px;
     }
     
-    .control-btn svg {
+    .control-btn.secondary-btn {
+        width: 32px;
+        height: 32px;
+        margin-left: 2px;
+    }
+    
+    .control-btn.main-btn svg {
         width: 20px;
         height: 20px;
+    }
+    
+    .control-btn.secondary-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .control-group {
+        padding: 2px;
     }
     
     .camera-dropdown {
