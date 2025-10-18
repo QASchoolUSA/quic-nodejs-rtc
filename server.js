@@ -70,8 +70,9 @@ const users = new Map();
 const roomKeys = new Map(); // Store room-specific encryption keys
 
 class Room {
-  constructor(id) {
+  constructor(id, creatorId) {
     this.id = id;
+    this.creatorId = creatorId; // Track who created the room
     this.participants = new Map();
     this.createdAt = new Date();
     
@@ -125,7 +126,7 @@ io.on('connection', (socket) => {
 
   // Join room
   socket.on('join-room', (data) => {
-    const { roomId, userData } = data;
+    const { roomId, userData, isCreator } = data;
     
     if (!roomId) {
       socket.emit('error', { message: 'Room ID is required' });
@@ -134,7 +135,7 @@ io.on('connection', (socket) => {
 
     // Create room if it doesn't exist
     if (!rooms.has(roomId)) {
-      rooms.set(roomId, new Room(roomId));
+      rooms.set(roomId, new Room(roomId, socket.id));
     }
 
     const room = rooms.get(roomId);
@@ -252,14 +253,40 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Screen sharing
-  socket.on('screen-share-start', () => {
+  // Remote control events for elderly assistance
+  socket.on('remote-control-video', (data) => {
     const user = users.get(socket.id);
     if (user) {
-      const { roomId } = user;
-      socket.to(roomId).emit('screen-share-start', {
-        userId: socket.id
-      });
+      const room = rooms.get(user.roomId);
+      // Only allow room creator to control others
+      if (room && room.creatorId === socket.id) {
+        const { targetUserId, enable } = data;
+        socket.to(targetUserId).emit('remote-control-video', {
+          fromUserId: socket.id,
+          enable: enable
+        });
+        console.log(`Room creator ${socket.id} ${enable ? 'enabled' : 'disabled'} video for ${targetUserId}`);
+      } else {
+        socket.emit('error', { message: 'Only room creator can control participants' });
+      }
+    }
+  });
+
+  socket.on('remote-control-audio', (data) => {
+    const user = users.get(socket.id);
+    if (user) {
+      const room = rooms.get(user.roomId);
+      // Only allow room creator to control others
+      if (room && room.creatorId === socket.id) {
+        const { targetUserId, enable } = data;
+        socket.to(targetUserId).emit('remote-control-audio', {
+          fromUserId: socket.id,
+          enable: enable
+        });
+        console.log(`Room creator ${socket.id} ${enable ? 'enabled' : 'disabled'} audio for ${targetUserId}`);
+      } else {
+        socket.emit('error', { message: 'Only room creator can control participants' });
+      }
     }
   });
 

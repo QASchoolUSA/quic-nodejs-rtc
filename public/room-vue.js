@@ -10,7 +10,7 @@ createApp({
             
             // Media controls
             micEnabled: true,
-            videoEnabled: true,
+            videoEnabled: false,
             
             // Camera switching
             availableCameras: [],
@@ -60,7 +60,14 @@ createApp({
         // Join room
         joinRoom() {
             if (this.webrtcClient) {
-                this.webrtcClient.joinRoom(this.roomId, { name: this.localUserName });
+                // Check if this is a room creator (first person to join)
+                const urlParams = new URLSearchParams(window.location.search);
+                this.isRoomCreator = urlParams.get('creator') === 'true';
+                
+                this.webrtcClient.joinRoom(this.roomId, { 
+                    name: this.localUserName,
+                    isCreator: this.isRoomCreator 
+                });
                 // Don't show connection status immediately to prevent flash
                 // this.connectionStatus = {
                 //     type: 'info',
@@ -481,25 +488,22 @@ createApp({
             }
         },
 
-        // Retry connection
-        async retryConnection() {
-            this.connectionStatus = null;
-            this.showConnectionStatus('Retrying connection...', 'info');
-            
-            try {
-                // Reinitialize WebRTC
-                this.initWebRTC();
-                
-                // Re-get available devices
-                await this.getAvailableCameras();
-                await this.getAvailableMics();
-                
-                this.showConnectionStatus('Connection retried successfully', 'success');
-            } catch (error) {
-                console.error('Retry failed:', error);
-                this.showConnectionStatus('Retry failed: ' + error.message, 'error');
+        // Remote control methods for room creator
+        toggleRemoteControls() {
+            this.showRemoteControls = !this.showRemoteControls;
+        },
+
+        controlRemoteVideo(peerId, enable) {
+            if (this.webrtcClient && this.isRoomCreator) {
+                this.webrtcClient.sendRemoteControl(peerId, 'video', enable);
             }
-        }
+        },
+
+        controlRemoteAudio(peerId, enable) {
+            if (this.webrtcClient && this.isRoomCreator) {
+                this.webrtcClient.sendRemoteControl(peerId, 'audio', enable);
+            }
+        },
     },
     
     beforeUnmount() {

@@ -9,7 +9,7 @@ class WebRTCClient {
         this.roomId = null;
         this.username = null;
         this.isAudioEnabled = true;
-        this.isVideoEnabled = true;
+        this.isVideoEnabled = false;
         this.currentCameraDeviceId = null;
         this.dataChannels = new Map();
         
@@ -161,6 +161,15 @@ class WebRTCClient {
             console.error('Socket error:', error);
             this.showError('Connection error: ' + error.message);
         });
+
+        // Handle remote control commands
+        this.socket.on('remote-control-video', (data) => {
+            this.handleRemoteControl('video', data.enable);
+        });
+
+        this.socket.on('remote-control-audio', (data) => {
+            this.handleRemoteControl('audio', data.enable);
+        });
     }
 
     async getUserMedia() {
@@ -170,14 +179,44 @@ class WebRTCClient {
                 throw new Error('WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.');
             }
             
-            const constraints = {
+            // First, get audio only
+            const audioConstraints = {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
                     sampleRate: 48000,
                     channelCount: 2
-                },
+                }
+            };
+
+            this.localStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+            
+            // Update local video element
+            const localVideo = document.getElementById('localVideo');
+            if (localVideo) {
+                localVideo.srcObject = this.localStream;
+            }
+            
+            // Emit local stream event for Vue.js
+            this.emit('localStream', this.localStream);
+
+            console.log('Got user media successfully (audio only)');
+            
+            // Ask for video permission
+            this.askForVideoPermission();
+            
+            return this.localStream;
+        } catch (error) {
+            console.error('Error accessing media devices:', error);
+            this.emit('error', 'Failed to access camera/microphone: ' + error.message);
+            throw error;
+        }
+    }
+
+    async askForVideoPermission() {
+        try {
+            const videoConstraints = {
                 video: this.currentCameraDeviceId ? 
                     { 
                         deviceId: { exact: this.currentCameraDeviceId },
@@ -194,24 +233,30 @@ class WebRTCClient {
                     }
             };
 
-            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
             
-            // Update local video element
-            const localVideo = document.getElementById('localVideo');
-            if (localVideo) {
-                localVideo.srcObject = this.localStream;
+            // Add video track to existing stream
+            const videoTrack = videoStream.getVideoTracks()[0];
+            if (videoTrack) {
+                this.localStream.addTrack(videoTrack);
+                videoTrack.enabled = false; // Keep video off by default
+                this.isVideoEnabled = false;
+                
+                // Update local video element
+                const localVideo = document.getElementById('localVideo');
+                if (localVideo) {
+                    localVideo.srcObject = this.localStream;
+                }
+                
+                // Emit updated stream
+                this.emit('localStreamUpdated', this.localStream);
+                
+                console.log('Video permission granted, video track added but disabled');
             }
             
-            // Emit local stream event for Vue.js
-            this.emit('localStream', this.localStream);
-
-            console.log('Got user media successfully');
-            
-            return this.localStream;
         } catch (error) {
-            console.error('Error accessing media devices:', error);
-            this.emit('error', 'Failed to access camera/microphone: ' + error.message);
-            throw error;
+            console.log('Video permission denied or failed:', error.message);
+            // Don't throw error, just log it - video is optional
         }
     }
 
@@ -682,40 +727,34 @@ class WebRTCClient {
         });
     }
 
-    // Adaptive video quality based on connection quality
-    adaptVideoQuality(peerConnection, quality) {
-        peerConnection.getSenders().forEach(sender => {
-            if (sender.track && sender.track.kind === 'video') {
-                const params = sender.getParameters();
-                if (params.encodings && params.encodings.length > 0) {
-                    params.encodings.forEach(encoding => {
-                        switch (quality) {
-                            case 'high':
-                                encoding.maxBitrate = 2500000;
-                                encoding.scaleResolutionDownBy = 1;
-                                encoding.maxFramerate = 30;
-                                break;
-                            case 'medium':
-                                encoding.maxBitrate = 1500000;
-                                encoding.scaleResolutionDownBy = 1.5;
-                                encoding.maxFramerate = 24;
-                                break;
-                            case 'low':
-                                encoding.maxBitrate = 800000;
-                                encoding.scaleResolutionDownBy = 2;
-                                encoding.maxFramerate = 15;
-                                break;
-                        }
-                    });
-                    
-                    sender.setParameters(params).catch(error => {
-                        console.warn('Could not adapt video quality:', error);
-                    });
-                }
+    // Handle remote control commands
+    handleRemoteControl(type, enable) {
+        if (type === 'video') {
+            const videoTrack = this.localStream?.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = enable;
+                this.isVideoEnabled = enable;
+                this.emit('videoToggled', this.isVideoEnabled);
+                console.log(`Video ${enable ? 'enabled' : 'disabled'} by remote control`);
             }
+        } else if (type === 'audio') {
+            const audioTrack = this.localStream?.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = enable;
+                this.isAudioEnabled = enable;
+                this.emit('audioToggled', this.isAudioEnabled);
+                console.log(`Audio ${enable ? 'enabled' : 'disabled'} by remote control`);
+            }
+        }
+    }
+
+    // Send remote control command (only room creator can use this)
+    sendRemoteControl(targetUserId, type, enable) {
+        this.socket.emit(`remote-control-${type}`, {
+            targetUserId: targetUserId,
+            enable: enable
         });
     }
-}
 
 // Export for use in room.js
 window.WebRTCClient = WebRTCClient;

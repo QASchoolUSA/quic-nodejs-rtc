@@ -64,6 +64,38 @@
             </div>
         </div>
 
+        <!-- Remote Controls for Room Creator -->
+        <div v-if="isRoomCreator && showRemoteControls" class="remote-controls-overlay">
+            <div class="remote-controls">
+                <div class="remote-controls-header">
+                    <h3>👥 Control Participants</h3>
+                    <button @click="toggleRemoteControls" class="close-btn">✕</button>
+                </div>
+                
+                <div v-for="peer in remotePeers" :key="peer.id" class="peer-controls">
+                    <h4>{{ peer.username || 'Participant' }}</h4>
+                    <div class="control-buttons">
+                        <button @click="controlRemoteVideo(peer.id, true)" class="control-btn video-btn">
+                            📹 Turn On Video
+                        </button>
+                        <button @click="controlRemoteVideo(peer.id, false)" class="control-btn video-btn">
+                            📹 Turn Off Video
+                        </button>
+                        <button @click="controlRemoteAudio(peer.id, true)" class="control-btn audio-btn">
+                            🎤 Turn On Mic
+                        </button>
+                        <button @click="controlRemoteAudio(peer.id, false)" class="control-btn audio-btn">
+                            🎤 Turn Off Mic
+                        </button>
+                    </div>
+                </div>
+                
+                <div v-if="remotePeers.length === 0" class="no-participants">
+                    <p>No other participants to control yet.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Controls -->
         <div class="controls">
             <!-- Microphone Control Group -->
