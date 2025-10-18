@@ -35,6 +35,9 @@ createApp({
 
             // Fullscreen state
             fullscreenPeerId: null,
+
+            // For user gesture on mobile
+            userHasInteracted: false,
         };
     },
                 async mounted() {
@@ -45,7 +48,15 @@ createApp({
                     const urlParams = new URLSearchParams(window.location.search);
                     this.roomId = urlParams.get('room') || 'default-room';
                     this.localUserName = localStorage.getItem('username') || 'Anonymous';
-        
+
+                    // Don't auto-init. Wait for user gesture.
+                    this.isInitializing = false;
+                },
+            methods: {
+                async userInitiatedJoin() {
+                    this.userHasInteracted = true;
+                    this.isInitializing = true;
+                
                     try {
                         // Initialize WebRTC and get media permissions
                         await this.initWebRTC();
@@ -58,7 +69,7 @@ createApp({
                         
                         // Set up other event listeners
                         this.setupEventListeners();
-        
+                
                     } catch (error) {
                         // initWebRTC will have already set the error message
                         console.error("Initialization failed:", error);
@@ -67,7 +78,7 @@ createApp({
                         this.isInitializing = false;
                     }
                 },
-            methods: {
+
                 // Join room
                 joinRoom() {
                     if (this.webrtcClient) {
