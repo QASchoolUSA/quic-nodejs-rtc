@@ -17,8 +17,10 @@
         </div>
 
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid">
-            <div class="video-container local-video">
+        <div class="video-grid" ref="videoGrid" :class="{ 'fullscreen-active': fullscreenPeerId }">
+            <div class="video-container local-video"
+                 @dblclick="enterFullscreen('local')"
+                 :class="{ 'fullscreen': fullscreenPeerId === 'local', 'hidden': fullscreenPeerId && fullscreenPeerId !== 'local' }">
                 <video 
                     ref="localVideo" 
                     autoplay 
@@ -34,7 +36,8 @@
                 v-for="peer in remotePeers" 
                 :key="peer.id" 
                 class="video-container remote-video"
-            >
+                @dblclick="enterFullscreen(peer.id)"
+                :class="{ 'fullscreen': fullscreenPeerId === peer.id, 'hidden': fullscreenPeerId && fullscreenPeerId !== peer.id }">
                 <video 
                     :ref="`remoteVideo-${peer.id}`"
                     autoplay 
@@ -201,6 +204,17 @@
                 </div>
             </div>
 
+
+            <button 
+                v-if="fullscreenPeerId"
+                @click="exitFullscreen" 
+                class="control-btn main-btn tile-view-btn" 
+                title="Exit Fullscreen"
+            >
+                <svg class="tile-view-icon" viewBox="0 0 24 24">
+                    <path d="M4 4h6v6H4V4zm0 10h6v6H4v-6zM14 4h6v6h-6V4zm0 10h6v6h-6v-6z"/>
+                </svg>
+            </button>
 
             <button 
                 @click="hangUp" 

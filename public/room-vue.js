@@ -31,244 +31,228 @@ createApp({
             isInitializing: true,
             
             // WebRTC client
-            webrtcClient: null
+            webrtcClient: null,
+
+            // Fullscreen state
+            fullscreenPeerId: null,
         };
     },
-        async mounted() {
-            // Get room ID and username from URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            this.roomId = urlParams.get('room') || 'default-room';
-            this.localUserName = localStorage.getItem('username') || 'Anonymous';
-            
-            // Initialize WebRTC immediately without delay
-            this.initWebRTC();
-            
-            // Get available cameras and microphones
-            await this.getAvailableCameras();
-            await this.getAvailableMics();
-            
-            // Join room immediately
-            this.joinRoom();
-            
-            // Set up event listeners
-            this.setupEventListeners();
-            
-            // Mark initialization as complete
-            this.isInitializing = false;
-        },
-    methods: {
-        // Join room
-        joinRoom() {
-            if (this.webrtcClient) {
-                // Check if this is a room creator (first person to join)
-                const urlParams = new URLSearchParams(window.location.search);
-                this.isRoomCreator = urlParams.get('creator') === 'true';
-                
-                this.webrtcClient.joinRoom(this.roomId, { 
-                    name: this.localUserName,
-                    isCreator: this.isRoomCreator 
-                });
-                // Don't show connection status immediately to prevent flash
-                // this.connectionStatus = {
-                //     type: 'info',
-                //     message: 'Joining room...'
-                // };
-            }
-        },
+                async mounted() {
+                    this.setAppHeight();
+                    window.addEventListener('resize', this.setAppHeight);
 
-        // Check if required APIs are available
-        checkBrowserSupport() {
-            const requiredAPIs = {
-                'MediaDevices API': 'mediaDevices' in navigator,
-                'getUserMedia': 'getUserMedia' in (navigator.mediaDevices || {}),
-                'WebRTC': 'RTCPeerConnection' in window,
-                'WebSocket': 'WebSocket' in window,
-                'Crypto API': 'crypto' in window && 'subtle' in window.crypto
-            };
-            
-            const missingAPIs = Object.entries(requiredAPIs)
-                .filter(([name, available]) => !available)
-                .map(([name]) => name);
-            
-            if (missingAPIs.length > 0) {
-                this.showConnectionStatus(
-                    `Missing required APIs: ${missingAPIs.join(', ')}. Please use a modern browser.`, 
-                    'error'
-                );
-                return false;
-            }
-            
-            // Check if running on HTTPS or localhost
-            const isSecure = location.protocol === 'https:' || 
-                           location.hostname === 'localhost' || 
-                           location.hostname === '127.0.0.1';
-            
-            if (!isSecure) {
-                this.showConnectionStatus(
-                    'WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.', 
-                    'error'
-                );
-                return false;
-            }
-            
-            return true;
-        },
-
-        // Initialize WebRTC client
-        initWebRTC() {
-            // Check browser support first
-            if (!this.checkBrowserSupport()) {
-                return;
-            }
-            
-            this.webrtcClient = new WebRTCClient();
-            
-            // Set up event listeners for WebRTC events
-            this.webrtcClient.on('remoteStream', (data) => {
-                console.log('Remote stream received:', data);
-                this.addRemotePeer(data.userId, data.stream, data.username || 'Participant');
-            });
-            
-            this.webrtcClient.on('localStream', (stream) => {
-                console.log('Local stream received:', stream);
-                this.$nextTick(() => {
-                    const localVideo = this.$refs.localVideo;
-                    if (localVideo) {
-                        localVideo.srcObject = stream;
+                    // Get room ID and username from URL parameters
+                    const urlParams = new URLSearchParams(window.location.search);
+                    this.roomId = urlParams.get('room') || 'default-room';
+                    this.localUserName = localStorage.getItem('username') || 'Anonymous';
+        
+                    try {
+                        // Initialize WebRTC and get media permissions
+                        await this.initWebRTC();
+                        
+                        // Get available devices now that permissions are granted
+                        await this.getAvailableDevices();
+                        
+                        // Join the room
+                        this.joinRoom();
+                        
+                        // Set up other event listeners
+                        this.setupEventListeners();
+        
+                    } catch (error) {
+                        // initWebRTC will have already set the error message
+                        console.error("Initialization failed:", error);
+                    } finally {
+                        // Mark initialization as complete
+                        this.isInitializing = false;
                     }
-                });
-            });
-            
-            this.webrtcClient.on('localStreamUpdated', (stream) => {
-                console.log('Local stream updated:', stream);
-                this.$nextTick(() => {
-                    const localVideo = this.$refs.localVideo;
-                    if (localVideo) {
-                        localVideo.srcObject = stream;
+                },
+            methods: {
+                // Join room
+                joinRoom() {
+                    if (this.webrtcClient) {
+                        // Check if this is a room creator (first person to join)
+                        const urlParams = new URLSearchParams(window.location.search);
+                        this.isRoomCreator = urlParams.get('creator') === 'true';
+                        
+                        this.webrtcClient.joinRoom(this.roomId, { 
+                            name: this.localUserName,
+                            isCreator: this.isRoomCreator 
+                        });
                     }
-                });
-            });
-            
-            this.webrtcClient.on('peerRemoved', (userId) => {
-                console.log('Peer removed:', userId);
-                this.removeRemotePeer(userId);
-            });
-            
-            this.webrtcClient.on('participantJoined', (data) => {
-                console.log('Participant joined:', data);
-                this.participantCount = data.participantCount || this.participantCount + 1;
-            });
-            
-            this.webrtcClient.on('participantLeft', (data) => {
-                console.log('Participant left:', data);
-                this.participantCount = Math.max(1, this.participantCount - 1);
-            });
-            
-            // Initialize WebRTC
-            this.webrtcClient.init().then(() => {
-                console.log('WebRTC client initialized');
-                this.showConnectionStatus('Connected to server', 'success');
-            }).catch(error => {
-                console.error('Failed to initialize WebRTC:', error);
-                this.showConnectionStatus('Failed to connect: ' + error.message, 'error');
-            });
-        },
+                },
         
-        setupEventListeners() {
-            // Handle page unload
-            window.addEventListener('beforeunload', () => {
-                if (this.webrtcClient) {
-                    this.webrtcClient.leaveRoom();
-                }
-            });
-            
-            // Handle visibility change for unread messages
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden && this.chatVisible) {
-                    this.unreadMessages = 0;
-                }
-            });
-            
-            // Handle clicks outside dropdowns
-            document.addEventListener('click', (event) => {
-                if (this.showCameraDropdown && !event.target.closest('.control-group')) {
-                    this.showCameraDropdown = false;
-                }
-                if (this.showMicDropdown && !event.target.closest('.control-group')) {
-                    this.showMicDropdown = false;
-                }
-            });
-        },
+                // Check if required APIs are available
+                checkBrowserSupport() {
+                    const requiredAPIs = {
+                        'MediaDevices API': 'mediaDevices' in navigator,
+                        'getUserMedia': 'getUserMedia' in (navigator.mediaDevices || {}),
+                        'WebRTC': 'RTCPeerConnection' in window,
+                        'WebSocket': 'WebSocket' in window,
+                        'Crypto API': 'crypto' in window && 'subtle' in window.crypto
+                    };
+                    
+                    const missingAPIs = Object.entries(requiredAPIs)
+                        .filter(([name, available]) => !available)
+                        .map(([name]) => name);
+                    
+                    if (missingAPIs.length > 0) {
+                        this.showConnectionStatus(
+                            `Missing required APIs: ${missingAPIs.join(', ')}. Please use a modern browser.`,
+                            'error'
+                        );
+                        return false;
+                    }
+                    
+                    // Check if running on HTTPS or localhost
+                    const isSecure = location.protocol === 'https:' || 
+                                   location.hostname === 'localhost' || 
+                                   location.hostname === '127.0.0.1';
+                    
+                    if (!isSecure) {
+                        this.showConnectionStatus(
+                            'WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.',
+                            'error'
+                        );
+                        return false;
+                    }
+                    
+                    return true;
+                },
         
-        // Media controls
-        async toggleMicrophone() {
-            if (this.webrtcClient) {
-                this.micEnabled = this.webrtcClient.toggleAudio();
-            }
-        },
+                // Initialize WebRTC client
+                initWebRTC() {
+                    // Check browser support first
+                    if (!this.checkBrowserSupport()) {
+                        return Promise.reject(new Error("Browser not supported"));
+                    }
+                    
+                    this.webrtcClient = new WebRTCClient();
+                    
+                    // Set up event listeners for WebRTC events
+                    this.webrtcClient.on('remoteStream', (data) => {
+                        console.log('Remote stream received:', data);
+                        this.addRemotePeer(data.userId, data.stream, data.username || 'Participant');
+                    });
+                    
+                    this.webrtcClient.on('localStream', (stream) => {
+                        console.log('Local stream received:', stream);
+                        this.$nextTick(() => {
+                            const localVideo = this.$refs.localVideo;
+                            if (localVideo) {
+                                localVideo.srcObject = stream;
+                            }
+                        });
+                    });
+                    
+                    this.webrtcClient.on('localStreamUpdated', (stream) => {
+                        console.log('Local stream updated:', stream);
+                        this.$nextTick(() => {
+                            const localVideo = this.$refs.localVideo;
+                            if (localVideo) {
+                                localVideo.srcObject = stream;
+                            }
+                        });
+                    });
+                    
+                    this.webrtcClient.on('peerRemoved', (userId) => {
+                        console.log('Peer removed:', userId);
+                        this.removeRemotePeer(userId);
+                    });
+                    
+                    this.webrtcClient.on('participantJoined', (data) => {
+                        console.log('Participant joined:', data);
+                        this.participantCount = data.participantCount || this.participantCount + 1;
+                    });
+                    
+                                this.webrtcClient.on('participantLeft', (data) => {
+                                    console.log('Participant left:', data);
+                                    this.participantCount = Math.max(1, this.participantCount - 1);
+                                });
+                    
+                                this.webrtcClient.on('videoToggled', (isEnabled) => {
+                                    this.videoEnabled = isEnabled;
+                                });
+                    
+                                this.webrtcClient.on('audioToggled', (isEnabled) => {
+                                    this.micEnabled = isEnabled;
+                                });                    
+                    // Initialize WebRTC and return the promise
+                    return this.webrtcClient.init().then(() => {
+                        console.log('WebRTC client initialized');
+                        this.showConnectionStatus('Connected to server', 'success');
+                    }).catch(error => {
+                        console.error('Failed to initialize WebRTC:', error);
+                        if (error.name === 'NotAllowedError') {
+                            this.showConnectionStatus('Camera and microphone permissions are required.', 'error');
+                        } else {
+                            this.showConnectionStatus('Failed to connect: ' + error.message, 'error');
+                        }
+                        // Re-throw the error so the calling function knows it failed
+                        throw error;
+                    });
+                },
+                
+                setupEventListeners() {
+                    // Handle page unload
+                    window.addEventListener('beforeunload', () => {
+                        if (this.webrtcClient) {
+                            this.webrtcClient.leaveRoom();
+                        }
+                    });
+                    
+                    // Handle visibility change for unread messages
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden && this.chatVisible) {
+                            this.unreadMessages = 0;
+                        }
+                    });
+                    
+                    // Handle clicks outside dropdowns
+                    document.addEventListener('click', (event) => {
+                        if (this.showCameraDropdown && !event.target.closest('.control-group')) {
+                            this.showCameraDropdown = false;
+                        }
+                        if (this.showMicDropdown && !event.target.closest('.control-group')) {
+                            this.showMicDropdown = false;
+                        }
+                    });
+                },
+                
+                // Media controls
+                async toggleMicrophone() {
+                    if (this.webrtcClient) {
+                        this.micEnabled = this.webrtcClient.toggleAudio();
+                    }
+                },
+                
+                async toggleVideo() {
+                    if (this.webrtcClient) {
+                        this.videoEnabled = this.webrtcClient.toggleVideo();
+                    }
+                },
         
-        async toggleVideo() {
-            if (this.webrtcClient) {
-                this.videoEnabled = this.webrtcClient.toggleVideo();
-            }
-        },
-
-        // Camera switching
-        async getAvailableCameras() {
-            try {
-                // Check if mediaDevices is available
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    console.warn('MediaDevices API not available');
-                    this.availableCameras = [];
-                    return;
-                }
-                
-                // Request permissions first to get proper device labels
-                await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                this.availableCameras = devices.filter(device => device.kind === 'videoinput');
-                console.log('Available cameras:', this.availableCameras.map(cam => ({ id: cam.deviceId, label: cam.label })));
-                
-                // Set initial camera if not set
-                if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
-                    this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
-                }
-            } catch (error) {
-                console.error('Error getting available cameras:', error);
-                this.availableCameras = [];
-                this.showConnectionStatus('Camera access denied or not available', 'error');
-            }
-        },
-
-        // Microphone switching
-        async getAvailableMics() {
-            try {
-                // Check if mediaDevices is available
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    console.warn('MediaDevices API not available');
-                    this.availableMics = [];
-                    return;
-                }
-                
-                // Request permissions first to get proper device labels
-                await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-                
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                this.availableMics = devices.filter(device => device.kind === 'audioinput');
-                console.log('Available microphones:', this.availableMics.map(mic => ({ id: mic.deviceId, label: mic.label })));
-                
-                // Set initial microphone if not set
-                if (this.availableMics.length > 0 && this.webrtcClient && !this.webrtcClient.currentMicDeviceId) {
-                    this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
-                }
-            } catch (error) {
-                console.error('Error getting available microphones:', error);
-                this.availableMics = [];
-                this.showConnectionStatus('Microphone access denied or not available', 'error');
-            }
-        },
-
+                // Device enumeration
+                async getAvailableDevices() {
+                    try {
+                        const devices = await navigator.mediaDevices.enumerateDevices();
+                        this.availableCameras = devices.filter(device => device.kind === 'videoinput');
+                        this.availableMics = devices.filter(device => device.kind === 'audioinput');
+                        
+                        console.log('Available cameras:', this.availableCameras.map(cam => ({ id: cam.deviceId, label: cam.label })));
+                        console.log('Available microphones:', this.availableMics.map(mic => ({ id: mic.deviceId, label: mic.label })));
+        
+                        if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
+                            this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
+                        }
+                        if (this.availableMics.length > 0 && this.webrtcClient && !this.webrtcClient.currentMicDeviceId) {
+                            this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
+                        }
+                    } catch (error) {
+                        console.error('Error getting available devices:', error);
+                        this.showConnectionStatus('Could not list media devices.', 'error');
+                    }
+                },
         // Camera dropdown methods
         toggleCameraDropdown() {
             this.showCameraDropdown = !this.showCameraDropdown;
@@ -488,6 +472,22 @@ createApp({
             }
         },
 
+        setAppHeight() {
+            const appHeight = window.innerHeight + 'px';
+            document.documentElement.style.setProperty('--app-height', appHeight);
+        },
+
+        // Fullscreen methods
+        enterFullscreen(peerId) {
+            if (window.innerWidth > 768) return; // Only on mobile
+            this.fullscreenPeerId = peerId;
+        },
+
+        exitFullscreen() {
+            this.fullscreenPeerId = null;
+            this.updateVideoGridLayout();
+        },
+
         // Remote control methods for room creator
         toggleRemoteControls() {
             this.showRemoteControls = !this.showRemoteControls;
@@ -510,5 +510,6 @@ createApp({
         if (this.webrtcClient) {
             this.webrtcClient.leaveRoom();
         }
+        window.removeEventListener('resize', this.setAppHeight);
     }
 }).mount('#app');
