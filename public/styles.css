@@ -1237,8 +1237,6 @@ header h1 {
         padding: 0;
         gap: 0;
         overflow: hidden;
-        height: calc(100vh - 80px);
-        height: calc(100dvh - 80px);
         justify-content: flex-start;
         align-items: stretch;
     }
