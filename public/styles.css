@@ -1238,32 +1238,31 @@ header h1 {
         gap: 2px;
         overflow: hidden;
         justify-content: center;
-        align-items: center;
+        align-items: stretch; /* Stretch to fill width */
     }
     
     .video-container {
-        aspect-ratio: 1;
         flex-shrink: 0;
         border-radius: 0;
-        width: auto; /* Let height and aspect ratio determine width */
-        max-width: 100%; /* Don't overflow */
+        width: 100%; /* Fill the width */
     }
     
     /* Single participant on mobile - full screen */
     .video-grid.layout-1 .video-container {
         height: 100%;
-        width: 100%;
         aspect-ratio: auto;
     }
     
-    /* Two participants on mobile - two squares filling the height */
+    /* Two participants on mobile - two rectangles filling the height */
     .video-grid.layout-2 .video-container {
         height: calc(50% - 1px); /* 50% minus half the gap */
+        aspect-ratio: auto; /* Allow rectangle shape */
     }
     
-    /* Three participants on mobile - stacked squares */
+    /* Three participants on mobile - stacked rectangles */
     .video-grid.layout-3 .video-container {
         height: calc(33.333% - 1.34px);
+        aspect-ratio: auto;
     }
     
     /* Four participants on mobile - 2x2 grid */
@@ -1279,6 +1278,7 @@ header h1 {
     .video-grid.layout-4 .video-container {
         height: auto; /* Let grid determine height */
         width: auto; /* Let grid determine width */
+        aspect-ratio: 1; /* Keep squares for grid */
     }
     
     /* 5-6 participants */
@@ -1311,6 +1311,7 @@ header h1 {
     .video-grid.layout-9 .video-container {
         height: auto;
         width: auto;
+        aspect-ratio: 1; /* Keep squares for grid */
     }
 
     .video-label {
