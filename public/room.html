@@ -8,15 +8,6 @@
 </head>
 <body class="room-page">
     <div id="app" class="room-container">
-        <!-- Entry Overlay -->
-        <div v-if="!userHasInteracted" class="entry-overlay">
-            <div class="entry-content">
-                <h2>Ready to join?</h2>
-                <p>Click the button below to start your camera and microphone.</p>
-                <button @click="userInitiatedJoin" class="btn btn-primary">Join Now</button>
-            </div>
-        </div>
-
         <!-- Loading State -->
         <div v-if="isInitializing" class="loading-overlay">
             <div class="loading-content">

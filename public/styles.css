@@ -1674,36 +1674,3 @@ header h1 {
     margin: 1rem 0;
     text-align: center;
 }
-
-/* Entry Overlay */
-.entry-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    backdrop-filter: blur(10px);
-    text-align: center;
-    color: #f8fafc;
-}
-
-.entry-content {
-    max-width: 400px;
-    padding: 2rem;
-}
-
-.entry-content h2 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-}
-
-.entry-content p {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    color: #cbd5e1;
-}
