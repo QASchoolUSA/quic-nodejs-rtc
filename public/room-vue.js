@@ -28,6 +28,7 @@ createApp({
             
             // Connection
             connectionStatus: null,
+            isInitializing: true,
             
             // WebRTC client
             webrtcClient: null
@@ -39,30 +40,32 @@ createApp({
             this.roomId = urlParams.get('room') || 'default-room';
             this.localUserName = localStorage.getItem('username') || 'Anonymous';
             
-            // Initialize WebRTC
+            // Initialize WebRTC immediately without delay
             this.initWebRTC();
             
             // Get available cameras and microphones
             await this.getAvailableCameras();
             await this.getAvailableMics();
             
-            // Join room after initialization
-            setTimeout(() => {
-                this.joinRoom();
-            }, 1000);
+            // Join room immediately
+            this.joinRoom();
             
             // Set up event listeners
             this.setupEventListeners();
+            
+            // Mark initialization as complete
+            this.isInitializing = false;
         },
     methods: {
         // Join room
         joinRoom() {
             if (this.webrtcClient) {
                 this.webrtcClient.joinRoom(this.roomId, { name: this.localUserName });
-                this.connectionStatus = {
-                    type: 'info',
-                    message: 'Joining room...'
-                };
+                // Don't show connection status immediately to prevent flash
+                // this.connectionStatus = {
+                //     type: 'info',
+                //     message: 'Joining room...'
+                // };
             }
         },
 
