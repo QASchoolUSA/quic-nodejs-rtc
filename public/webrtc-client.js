@@ -52,6 +52,15 @@ class WebRTCClient {
 
     async init() {
         try {
+            // Check if required APIs are available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('MediaDevices API not available. Please use a modern browser.');
+            }
+            
+            if (!window.RTCPeerConnection) {
+                throw new Error('WebRTC not supported. Please use a modern browser.');
+            }
+            
             // Initialize Socket.IO connection
             this.socket = io();
             this.setupSocketHandlers();
@@ -61,7 +70,8 @@ class WebRTCClient {
             
         } catch (error) {
             console.error('Failed to initialize WebRTC client:', error);
-            this.emit('error', 'Failed to access camera/microphone. Please check permissions.');
+            this.emit('error', error.message || 'Failed to access camera/microphone. Please check permissions.');
+            throw error;
         }
     }
 
@@ -140,6 +150,11 @@ class WebRTCClient {
 
     async getUserMedia() {
         try {
+            // Check if we're in a secure context
+            if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                throw new Error('WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.');
+            }
+            
             const constraints = {
                 audio: {
                     echoCancellation: true,

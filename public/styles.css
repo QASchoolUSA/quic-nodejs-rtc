@@ -447,56 +447,172 @@ header h1 {
 
 .video-grid {
     flex: 1;
-    display: grid;
-    gap: 10px;
-    padding: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    grid-auto-rows: minmax(200px, 1fr);
-}
-
-/* Focus View Styles */
-.video-grid.focus {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px;
     justify-content: center;
-}
-
-.focused-video-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
     align-items: center;
-    justify-content: center;
+    align-content: center;
+    min-height: 0;
+    overflow: hidden;
 }
 
-.focused-video {
-    width: 80%;
-    height: 80%;
-    max-width: 1200px;
-    max-height: 800px;
-    cursor: pointer;
-}
-
-.local-video-small {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 200px;
-    height: 150px;
-    z-index: 10;
-    border: 2px solid #667eea;
-}
-
+/* Google Meet-style video positioning */
 .video-container {
     position: relative;
     background: #2a2a2a;
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     cursor: pointer;
     transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+/* Desktop: Side-by-side layout like Google Meet */
+@media (min-width: 769px) {
+    .video-grid {
+        /* Calculate optimal video size based on participant count */
+        --video-count: 1;
+    }
+    
+    .video-grid:has(.video-container:nth-child(1):last-child) {
+        --video-count: 1;
+    }
+    
+    .video-grid:has(.video-container:nth-child(2):last-child) {
+        --video-count: 2;
+    }
+    
+    .video-grid:has(.video-container:nth-child(3):last-child) {
+        --video-count: 3;
+    }
+    
+    .video-grid:has(.video-container:nth-child(4):last-child) {
+        --video-count: 4;
+    }
+    
+    .video-grid:has(.video-container:nth-child(5):last-child) {
+        --video-count: 5;
+    }
+    
+    .video-grid:has(.video-container:nth-child(6):last-child) {
+        --video-count: 6;
+    }
+    
+    .video-grid:has(.video-container:nth-child(7):last-child) {
+        --video-count: 7;
+    }
+    
+    .video-grid:has(.video-container:nth-child(8):last-child) {
+        --video-count: 8;
+    }
+    
+    .video-grid:has(.video-container:nth-child(9):last-child) {
+        --video-count: 9;
+    }
+    
+    /* Single participant - full width */
+    .video-grid[style*="--video-count: 1"] .video-container,
+    .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
+        width: calc(100% - 32px);
+        height: calc(100vh - 200px);
+        max-width: 800px;
+        aspect-ratio: 16/9;
+    }
+    
+    /* Two participants - side by side */
+    .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    /* Three participants - 2+1 layout */
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container:nth-child(3) {
+        width: calc(100% - 32px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    /* Four participants - 2x2 grid */
+    .video-grid:has(.video-container:nth-child(4):last-child) .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    /* Five or more participants - 3+2 layout */
+    .video-grid:has(.video-container:nth-child(5):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(6):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
+        width: calc(33.333% - 8px);
+        height: calc(33.333vh - 70px);
+        aspect-ratio: 16/9;
+    }
+    
+    /* For 7+ participants, use smaller tiles */
+    .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
+        width: calc(25% - 6px);
+        height: calc(25vh - 50px);
+    }
+    
+    /* Fallback classes for browsers that don't support :has() */
+    .video-grid.layout-1 .video-container {
+        width: calc(100% - 32px);
+        height: calc(100vh - 200px);
+        max-width: 800px;
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-2 .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-3 .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-3 .video-container:nth-child(3) {
+        width: calc(100% - 32px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-4 .video-container {
+        width: calc(50% - 12px);
+        height: calc(50vh - 100px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-5 .video-container,
+    .video-grid.layout-6 .video-container {
+        width: calc(33.333% - 8px);
+        height: calc(33.333vh - 70px);
+        aspect-ratio: 16/9;
+    }
+    
+    .video-grid.layout-7 .video-container,
+    .video-grid.layout-8 .video-container,
+    .video-grid.layout-9 .video-container {
+        width: calc(25% - 6px);
+        height: calc(25vh - 50px);
+    }
 }
 
 .video-container:hover {
@@ -511,17 +627,19 @@ header h1 {
 
 .video-label {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.7);
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
 }
 
 .local-video {
-    border: 2px solid #667eea;
+    border: 2px solid #3b82f6;
 }
 
 /* Controls */
@@ -858,7 +976,145 @@ header h1 {
     margin-right: 1rem;
 }
 
-/* Responsive Design */
+/* Error Overlay */
+.error-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 2rem;
+}
+
+.error-message {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid #ff4444;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.error-message h3 {
+    color: #ff4444;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.error-message p {
+    color: #e2e8f0;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.error-solutions h4 {
+    color: #f8fafc;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.error-solutions ul {
+    color: #cbd5e1;
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+}
+
+.error-solutions li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.retry-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.retry-btn:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-1px);
+}
+
+/* Mobile: Vertical stack layout like Google Meet */
+@media (max-width: 768px) {
+    .video-grid {
+        flex-direction: column;
+        padding: 8px;
+        gap: 6px;
+        overflow-y: auto;
+        max-height: calc(100vh - 120px);
+        max-height: calc(100dvh - 120px);
+    }
+    
+    .video-container {
+        width: 100%;
+        height: calc(50vh - 60px);
+        min-height: 200px;
+        max-height: 300px;
+        aspect-ratio: 16/9;
+    }
+    
+    /* Single participant on mobile - larger */
+    .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
+        height: calc(100vh - 120px);
+        height: calc(100dvh - 120px);
+        max-height: none;
+    }
+    
+    /* Two participants on mobile - equal height */
+    .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
+        height: calc(50vh - 60px);
+        height: calc(50dvh - 60px);
+    }
+    
+    /* Three or more participants - smaller tiles */
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(4):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(5):last-child) .video-container {
+        height: calc(33.333vh - 40px);
+        height: calc(33.333dvh - 40px);
+        min-height: 150px;
+    }
+    
+    .video-label {
+        font-size: 0.8rem;
+        padding: 3px 6px;
+    }
+    
+    /* Mobile fallback classes */
+    .video-grid.layout-1 .video-container {
+        height: calc(100vh - 120px);
+        height: calc(100dvh - 120px);
+        max-height: none;
+    }
+    
+    .video-grid.layout-2 .video-container {
+        height: calc(50vh - 60px);
+        height: calc(50dvh - 60px);
+    }
+    
+    .video-grid.layout-3 .video-container,
+    .video-grid.layout-4 .video-container,
+    .video-grid.layout-5 .video-container {
+        height: calc(33.333vh - 40px);
+        height: calc(33.333dvh - 40px);
+        min-height: 150px;
+    }
+}
+
+/* Responsive Design for Homepage */
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
@@ -900,43 +1156,6 @@ header h1 {
         height: 100vh;
         height: 100dvh; /* Dynamic viewport height for mobile */
         overflow: hidden;
-    }
-    
-    .video-grid {
-        grid-template-columns: 1fr;
-        padding: 10px;
-        gap: 8px;
-        overflow-y: auto;
-        /* Ensure videos fit within viewport */
-        max-height: calc(100vh - 120px); /* Account for controls */
-        max-height: calc(100dvh - 120px);
-    }
-    
-    .video-container {
-        /* Fixed height for mobile to prevent scrolling */
-        height: 200px;
-        min-height: 200px;
-        max-height: 200px;
-    }
-    
-    /* Focus view optimizations for mobile */
-    .video-grid.focus {
-        max-height: calc(100vh - 120px);
-        max-height: calc(100dvh - 120px);
-    }
-    
-    .focused-video {
-        width: 95%;
-        height: calc(100vh - 200px); /* Leave space for controls and small video */
-        height: calc(100dvh - 200px);
-        max-height: none;
-    }
-    
-    .local-video-small {
-        width: 120px;
-        height: 90px;
-        bottom: 10px;
-        right: 10px;
     }
     
     .controls {
@@ -1027,26 +1246,44 @@ header h1 {
 /* Additional mobile optimizations for very small screens - Room Page */
 @media (max-width: 480px) {
     .video-grid {
-        padding: 5px;
-        gap: 5px;
+        padding: 4px;
+        gap: 4px;
         max-height: calc(100vh - 100px);
         max-height: calc(100dvh - 100px);
     }
     
     .video-container {
-        height: 180px;
-        min-height: 180px;
-        max-height: 180px;
+        height: calc(40vh - 50px);
+        height: calc(40dvh - 50px);
+        min-height: 120px;
+        max-height: 200px;
     }
     
-    .focused-video {
-        height: calc(100vh - 180px);
-        height: calc(100dvh - 180px);
+    /* Single participant on very small screens */
+    .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
+        height: calc(100vh - 100px);
+        height: calc(100dvh - 100px);
+        max-height: none;
     }
     
-    .local-video-small {
-        width: 100px;
-        height: 75px;
+    /* Two participants on very small screens */
+    .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
+        height: calc(50vh - 50px);
+        height: calc(50dvh - 50px);
+    }
+    
+    /* Three or more participants on very small screens */
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(4):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(5):last-child) .video-container {
+        height: calc(30vh - 30px);
+        height: calc(30dvh - 30px);
+        min-height: 100px;
+    }
+    
+    .video-label {
+        font-size: 0.75rem;
+        padding: 2px 4px;
     }
     
     .controls {

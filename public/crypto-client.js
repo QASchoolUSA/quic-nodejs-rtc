@@ -30,14 +30,24 @@ class CryptoClient {
      * @returns {Promise<CryptoKey>} Imported key
      */
     async importKey(keyHex) {
-        const keyBuffer = this.hexToArrayBuffer(keyHex);
-        return await window.crypto.subtle.importKey(
-            'raw',
-            keyBuffer,
-            { name: this.algorithm },
-            false,
-            ['encrypt', 'decrypt']
-        );
+        try {
+            // Check if crypto API is available
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error('Web Crypto API not available. Please use a modern browser.');
+            }
+            
+            const keyBuffer = this.hexToArrayBuffer(keyHex);
+            return await window.crypto.subtle.importKey(
+                'raw',
+                keyBuffer,
+                { name: this.algorithm },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        } catch (error) {
+            console.error('Error importing key:', error);
+            throw new Error('Failed to import encryption key: ' + error.message);
+        }
     }
 
     /**

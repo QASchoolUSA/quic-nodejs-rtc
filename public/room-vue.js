@@ -22,9 +22,6 @@ createApp({
             currentMicIndex: 0,
             showMicDropdown: false,
             
-            // View mode
-            viewMode: 'grid', // 'grid' or 'focus'
-            focusedPeerId: null,
             
             // Peers
             remotePeers: [],
@@ -69,8 +66,51 @@ createApp({
             }
         },
 
+        // Check if required APIs are available
+        checkBrowserSupport() {
+            const requiredAPIs = {
+                'MediaDevices API': 'mediaDevices' in navigator,
+                'getUserMedia': 'getUserMedia' in (navigator.mediaDevices || {}),
+                'WebRTC': 'RTCPeerConnection' in window,
+                'WebSocket': 'WebSocket' in window,
+                'Crypto API': 'crypto' in window && 'subtle' in window.crypto
+            };
+            
+            const missingAPIs = Object.entries(requiredAPIs)
+                .filter(([name, available]) => !available)
+                .map(([name]) => name);
+            
+            if (missingAPIs.length > 0) {
+                this.showConnectionStatus(
+                    `Missing required APIs: ${missingAPIs.join(', ')}. Please use a modern browser.`, 
+                    'error'
+                );
+                return false;
+            }
+            
+            // Check if running on HTTPS or localhost
+            const isSecure = location.protocol === 'https:' || 
+                           location.hostname === 'localhost' || 
+                           location.hostname === '127.0.0.1';
+            
+            if (!isSecure) {
+                this.showConnectionStatus(
+                    'WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.', 
+                    'error'
+                );
+                return false;
+            }
+            
+            return true;
+        },
+
         // Initialize WebRTC client
         initWebRTC() {
+            // Check browser support first
+            if (!this.checkBrowserSupport()) {
+                return;
+            }
+            
             this.webrtcClient = new WebRTCClient();
             
             // Set up event listeners for WebRTC events
@@ -120,7 +160,7 @@ createApp({
                 this.showConnectionStatus('Connected to server', 'success');
             }).catch(error => {
                 console.error('Failed to initialize WebRTC:', error);
-                this.showConnectionStatus('Failed to connect', 'error');
+                this.showConnectionStatus('Failed to connect: ' + error.message, 'error');
             });
         },
         
@@ -166,6 +206,13 @@ createApp({
         // Camera switching
         async getAvailableCameras() {
             try {
+                // Check if mediaDevices is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.warn('MediaDevices API not available');
+                    this.availableCameras = [];
+                    return;
+                }
+                
                 // Request permissions first to get proper device labels
                 await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 
@@ -174,18 +221,26 @@ createApp({
                 console.log('Available cameras:', this.availableCameras.map(cam => ({ id: cam.deviceId, label: cam.label })));
                 
                 // Set initial camera if not set
-                if (this.availableCameras.length > 0 && !this.webrtcClient.currentCameraDeviceId) {
+                if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
                     this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
                 }
             } catch (error) {
                 console.error('Error getting available cameras:', error);
                 this.availableCameras = [];
+                this.showConnectionStatus('Camera access denied or not available', 'error');
             }
         },
 
         // Microphone switching
         async getAvailableMics() {
             try {
+                // Check if mediaDevices is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.warn('MediaDevices API not available');
+                    this.availableMics = [];
+                    return;
+                }
+                
                 // Request permissions first to get proper device labels
                 await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
                 
@@ -194,12 +249,13 @@ createApp({
                 console.log('Available microphones:', this.availableMics.map(mic => ({ id: mic.deviceId, label: mic.label })));
                 
                 // Set initial microphone if not set
-                if (this.availableMics.length > 0 && !this.webrtcClient.currentMicDeviceId) {
+                if (this.availableMics.length > 0 && this.webrtcClient && !this.webrtcClient.currentMicDeviceId) {
                     this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
                 }
             } catch (error) {
                 console.error('Error getting available microphones:', error);
                 this.availableMics = [];
+                this.showConnectionStatus('Microphone access denied or not available', 'error');
             }
         },
 
@@ -307,26 +363,6 @@ createApp({
             }
         },
 
-        // View mode management
-        toggleViewMode() {
-            this.viewMode = this.viewMode === 'grid' ? 'focus' : 'grid';
-            if (this.viewMode === 'focus' && this.remotePeers.length > 0) {
-                this.focusedPeerId = this.focusedPeerId || this.remotePeers[0].id;
-            }
-        },
-
-        focusOnPeer(peerId) {
-            this.viewMode = 'focus';
-            this.focusedPeerId = peerId;
-        },
-
-        cycleFocusedPeer() {
-            if (this.remotePeers.length === 0) return;
-            
-            const currentIndex = this.remotePeers.findIndex(p => p.id === this.focusedPeerId);
-            const nextIndex = (currentIndex + 1) % this.remotePeers.length;
-            this.focusedPeerId = this.remotePeers[nextIndex].id;
-        },
         
 
         
@@ -347,6 +383,9 @@ createApp({
             // Update participant count
             this.participantCount = this.remotePeers.length + 1;
             
+            // Update video grid layout class for better browser compatibility
+            this.updateVideoGridLayout();
+            
             this.$nextTick(() => {
                 const videoElement = this.$refs[`remoteVideo-${peerId}`];
                 if (videoElement && videoElement[0]) {
@@ -364,7 +403,24 @@ createApp({
                 this.remotePeers.splice(index, 1);
                 // Update participant count
                 this.participantCount = this.remotePeers.length + 1;
+                // Update video grid layout class
+                this.updateVideoGridLayout();
             }
+        },
+
+        // Update video grid layout class for better browser compatibility
+        updateVideoGridLayout() {
+            this.$nextTick(() => {
+                const videoGrid = this.$refs.videoGrid;
+                if (videoGrid) {
+                    // Remove existing layout classes
+                    videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6', 'layout-7', 'layout-8', 'layout-9');
+                    
+                    // Add appropriate layout class based on total participants (including local)
+                    const totalParticipants = this.remotePeers.length + 1; // +1 for local user
+                    videoGrid.classList.add(`layout-${totalParticipants}`);
+                }
+            });
         },
         
         // Utility functions
@@ -419,6 +475,26 @@ createApp({
                     qualityMessages[quality] || 'Connection issues detected',
                     qualityTypes[quality] || 'warning'
                 );
+            }
+        },
+
+        // Retry connection
+        async retryConnection() {
+            this.connectionStatus = null;
+            this.showConnectionStatus('Retrying connection...', 'info');
+            
+            try {
+                // Reinitialize WebRTC
+                this.initWebRTC();
+                
+                // Re-get available devices
+                await this.getAvailableCameras();
+                await this.getAvailableMics();
+                
+                this.showConnectionStatus('Connection retried successfully', 'success');
+            } catch (error) {
+                console.error('Retry failed:', error);
+                this.showConnectionStatus('Retry failed: ' + error.message, 'error');
             }
         }
     },

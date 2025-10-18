@@ -9,52 +9,42 @@
 <body class="room-page">
     <div id="app" class="room-container">
         <!-- Video Grid -->
-        <div :class="['video-grid', viewMode]" ref="videoGrid">
-            <!-- Grid View -->
-            <template v-if="viewMode === 'grid'">
-                <div class="video-container local-video">
-                    <video ref="localVideo" autoplay muted playsinline></video>
-                    <div class="video-label">{{ localUserName || 'You' }}</div>
-                </div>
-                <!-- Remote videos will be added dynamically -->
-                <div 
-                    v-for="peer in remotePeers" 
-                    :key="peer.id" 
-                    class="video-container remote-video"
-                    @click="focusOnPeer(peer.id)"
-                >
-                    <video 
-                        :ref="`remoteVideo-${peer.id}`"
-                        autoplay 
-                        playsinline
-                    ></video>
-                    <div class="video-label">{{ peer.username || 'Participant' }}</div>
-                </div>
-            </template>
+        <div class="video-grid" ref="videoGrid">
+            <div class="video-container local-video">
+                <video ref="localVideo" autoplay muted playsinline></video>
+                <div class="video-label">{{ localUserName || 'You' }}</div>
+            </div>
+            <!-- Remote videos will be added dynamically -->
+            <div 
+                v-for="peer in remotePeers" 
+                :key="peer.id" 
+                class="video-container remote-video"
+            >
+                <video 
+                    :ref="`remoteVideo-${peer.id}`"
+                    autoplay 
+                    playsinline
+                ></video>
+                <div class="video-label">{{ peer.username || 'Participant' }}</div>
+            </div>
+        </div>
 
-            <!-- Focus View -->
-            <template v-if="viewMode === 'focus'">
-                <div class="focused-video-container">
-                    <div 
-                        v-if="focusedPeerId && remotePeers.find(p => p.id === focusedPeerId)"
-                        class="video-container focused-video"
-                        @click="cycleFocusedPeer"
-                    >
-                        <video 
-                            :ref="`remoteVideo-${focusedPeerId}`"
-                            autoplay 
-                            playsinline
-                        ></video>
-                        <div class="video-label">{{ remotePeers.find(p => p.id === focusedPeerId)?.username || 'Participant' }}</div>
-                    </div>
-                    
-                    <!-- Small local video in corner -->
-                    <div class="video-container local-video-small">
-                        <video ref="localVideo" autoplay muted playsinline></video>
-                        <div class="video-label">{{ localUserName || 'You' }}</div>
-                    </div>
+        <!-- Error Display -->
+        <div v-if="connectionStatus && connectionStatus.type === 'error'" class="error-overlay">
+            <div class="error-message">
+                <h3>⚠️ Connection Error</h3>
+                <p>{{ connectionStatus.message }}</p>
+                <div class="error-solutions">
+                    <h4>Possible Solutions:</h4>
+                    <ul>
+                        <li>Make sure you're accessing via <strong>https://</strong> or <strong>localhost</strong></li>
+                        <li>Allow camera and microphone permissions when prompted</li>
+                        <li>Use a modern browser (Chrome, Firefox, Safari, Edge)</li>
+                        <li>Check if your browser supports WebRTC</li>
+                    </ul>
+                    <button @click="retryConnection" class="retry-btn">Retry Connection</button>
                 </div>
-            </template>
+            </div>
         </div>
 
         <!-- Controls -->
@@ -162,20 +152,6 @@
                 </div>
             </div>
 
-            <button 
-                @click="toggleViewMode" 
-                :class="['control-btn', 'view-toggle']" 
-                :title="viewMode === 'grid' ? 'Switch to Focus View' : 'Switch to Grid View'"
-                v-if="remotePeers.length > 0"
-            >
-                <svg v-if="viewMode === 'grid'" class="grid-icon" viewBox="0 0 24 24">
-                    <path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm4-8v8h8V3h-8zm6 6h-4V5h4v4zM3 13v8h8v-8H3zm6 6H5v-4h4v4zm4-6v8h8v-8h-8zm6 6h-4v-4h4v4z"/>
-                </svg>
-                <svg v-else class="focus-icon" viewBox="0 0 24 24">
-                    <path d="M12 8c2.21 0 4 1.79 4 4s-1.79 4-4 4-4-1.79-4-4 1.79-4 4-4m0-2C8.69 6 6 8.69 6 12s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-            </button>
 
             <button 
                 @click="hangUp" 
