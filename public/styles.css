@@ -451,6 +451,9 @@ header h1 {
     flex-wrap: wrap;
     gap: 8px;
     padding: 16px;
+    /* Performance optimizations */
+    will-change: transform;
+    contain: layout style paint;
     justify-content: center;
     align-items: center;
     align-content: center;
@@ -468,6 +471,10 @@ header h1 {
     cursor: pointer;
     transition: transform 0.2s ease;
     flex-shrink: 0;
+    /* Performance optimizations */
+    will-change: transform;
+    contain: layout style paint;
+    transform: translateZ(0); /* Force hardware acceleration */
 }
 
 /* Desktop: Side-by-side layout like Google Meet */
@@ -639,6 +646,11 @@ header h1 {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* Performance optimizations */
+    will-change: transform;
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .video-label {

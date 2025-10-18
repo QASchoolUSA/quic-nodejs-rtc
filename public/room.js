@@ -290,29 +290,50 @@ function showSuccess(message) {
     }, 3000);
 }
 
-// Handle connection quality monitoring
+// Handle connection quality monitoring with adaptive video quality
 function monitorConnectionQuality() {
     if (!webrtcClient) return;
     
     webrtcClient.peers.forEach((peer, userId) => {
         peer.peerConnection.getStats().then(stats => {
+            let videoStats = null;
+            let connectionStats = null;
+            
             stats.forEach(report => {
                 if (report.type === 'inbound-rtp' && report.mediaType === 'video') {
-                    const packetsLost = report.packetsLost || 0;
-                    const packetsReceived = report.packetsReceived || 0;
-                    const lossRate = packetsLost / (packetsLost + packetsReceived);
-                    
-                    if (lossRate > 0.05) { // 5% packet loss
-                        console.warn(`High packet loss with ${userId}: ${(lossRate * 100).toFixed(1)}%`);
-                    }
+                    videoStats = report;
+                } else if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                    connectionStats = report;
                 }
             });
+            
+            if (videoStats) {
+                const packetsLost = videoStats.packetsLost || 0;
+                const packetsReceived = videoStats.packetsReceived || 0;
+                const lossRate = packetsLost / (packetsLost + packetsReceived);
+                const frameRate = videoStats.framesPerSecond || 0;
+                
+                // Adaptive quality based on connection quality
+                let quality = 'high';
+                if (lossRate > 0.1 || frameRate < 15) {
+                    quality = 'low';
+                } else if (lossRate > 0.05 || frameRate < 20) {
+                    quality = 'medium';
+                }
+                
+                // Apply adaptive quality
+                if (webrtcClient.adaptVideoQuality) {
+                    webrtcClient.adaptVideoQuality(peer.peerConnection, quality);
+                }
+                
+                console.log(`Video quality for ${userId}: ${quality} (loss: ${(lossRate * 100).toFixed(1)}%, fps: ${frameRate.toFixed(1)})`);
+            }
         }).catch(console.error);
     });
 }
 
-// Monitor connection quality every 5 seconds
-setInterval(monitorConnectionQuality, 5000);
+// Monitor connection quality every 3 seconds for more responsive adaptation
+setInterval(monitorConnectionQuality, 3000);
 
 // Handle window resize for responsive video grid
 function handleResize() {

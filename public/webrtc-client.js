@@ -22,13 +22,17 @@ class WebRTCClient {
         this.keyPair = null;
         this.peerKeys = new Map(); // Store shared keys with each peer
         
-        // STUN/TURN configuration
+        // STUN/TURN configuration with performance optimizations
         this.rtcConfig = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' }
             ],
-            iceCandidatePoolSize: 10
+            iceCandidatePoolSize: 10,
+            // Performance optimizations
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+            iceTransportPolicy: 'all'
         };
     }
 
@@ -170,14 +174,23 @@ class WebRTCClient {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    autoGainControl: true,
+                    sampleRate: 48000,
+                    channelCount: 2
                 },
                 video: this.currentCameraDeviceId ? 
-                    { deviceId: { exact: this.currentCameraDeviceId } } : 
+                    { 
+                        deviceId: { exact: this.currentCameraDeviceId },
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        frameRate: { ideal: 30, max: 60 },
+                        facingMode: 'user'
+                    } : 
                     {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        frameRate: { ideal: 30 }
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        frameRate: { ideal: 30, max: 60 },
+                        facingMode: 'user'
                     }
             };
 
@@ -206,6 +219,9 @@ class WebRTCClient {
         try {
             const peerConnection = new RTCPeerConnection(this.rtcConfig);
             
+            // Add video performance optimizations
+            this.optimizeVideoPerformance(peerConnection);
+            
             // Create data channel for QUIC-like low-latency communication
             let dataChannel = null;
             if (isInitiator) {
@@ -222,9 +238,13 @@ class WebRTCClient {
                 this.setupDataChannel(channel, userId);
             };
 
-            // Add local stream tracks
+            // Add local stream tracks with optimizations
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => {
+                    if (track.kind === 'video') {
+                        // Apply video track optimizations
+                        this.optimizeVideoTrack(track);
+                    }
                     peerConnection.addTrack(track, this.localStream);
                 });
             }
@@ -232,7 +252,16 @@ class WebRTCClient {
             // Handle remote stream
             peerConnection.ontrack = (event) => {
                 console.log('Received remote track:', event);
-                this.handleRemoteStream(userId, event.streams[0]);
+                const stream = event.streams[0];
+                
+                // Optimize remote video tracks
+                stream.getTracks().forEach(track => {
+                    if (track.kind === 'video') {
+                        this.optimizeVideoTrack(track);
+                    }
+                });
+                
+                this.handleRemoteStream(userId, stream);
             };
 
             // Handle ICE candidates
@@ -589,6 +618,102 @@ class WebRTCClient {
     showError(message) {
         console.error(message);
         this.emit('error', message);
+    }
+
+    // Video performance optimization methods
+    optimizeVideoPerformance(peerConnection) {
+        // Set up connection state monitoring for performance
+        peerConnection.onconnectionstatechange = () => {
+            console.log(`Connection state: ${peerConnection.connectionState}`);
+            
+            if (peerConnection.connectionState === 'connected') {
+                // Connection is stable, we can optimize further
+                this.optimizeConnectionForVideo(peerConnection);
+            }
+        };
+
+        // Monitor ICE connection state
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log(`ICE connection state: ${peerConnection.iceConnectionState}`);
+        };
+    }
+
+    optimizeVideoTrack(track) {
+        if (track.kind !== 'video') return;
+
+        // Apply video track constraints for better performance
+        const constraints = track.getConstraints();
+        
+        // Set optimal video settings
+        track.applyConstraints({
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 30, max: 60 },
+            // Enable hardware acceleration hints
+            advanced: [
+                { width: { min: 640 } },
+                { height: { min: 480 } },
+                { frameRate: { min: 15 } }
+            ]
+        }).catch(error => {
+            console.warn('Could not apply video constraints:', error);
+        });
+    }
+
+    optimizeConnectionForVideo(peerConnection) {
+        // Get video senders and optimize them
+        peerConnection.getSenders().forEach(sender => {
+            if (sender.track && sender.track.kind === 'video') {
+                // Set optimal encoding parameters
+                const params = sender.getParameters();
+                if (params.encodings && params.encodings.length > 0) {
+                    params.encodings.forEach(encoding => {
+                        // Optimize for real-time video
+                        encoding.maxBitrate = 2500000; // 2.5 Mbps max
+                        encoding.scaleResolutionDownBy = 1; // No downscaling initially
+                        encoding.maxFramerate = 30;
+                    });
+                    
+                    sender.setParameters(params).catch(error => {
+                        console.warn('Could not set encoding parameters:', error);
+                    });
+                }
+            }
+        });
+    }
+
+    // Adaptive video quality based on connection quality
+    adaptVideoQuality(peerConnection, quality) {
+        peerConnection.getSenders().forEach(sender => {
+            if (sender.track && sender.track.kind === 'video') {
+                const params = sender.getParameters();
+                if (params.encodings && params.encodings.length > 0) {
+                    params.encodings.forEach(encoding => {
+                        switch (quality) {
+                            case 'high':
+                                encoding.maxBitrate = 2500000;
+                                encoding.scaleResolutionDownBy = 1;
+                                encoding.maxFramerate = 30;
+                                break;
+                            case 'medium':
+                                encoding.maxBitrate = 1500000;
+                                encoding.scaleResolutionDownBy = 1.5;
+                                encoding.maxFramerate = 24;
+                                break;
+                            case 'low':
+                                encoding.maxBitrate = 800000;
+                                encoding.scaleResolutionDownBy = 2;
+                                encoding.maxFramerate = 15;
+                                break;
+                        }
+                    });
+                    
+                    sender.setParameters(params).catch(error => {
+                        console.warn('Could not adapt video quality:', error);
+                    });
+                }
+            }
+        });
     }
 }
 
