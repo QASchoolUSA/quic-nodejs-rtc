@@ -162,11 +162,18 @@ createApp({
                         this.participantCount = data.participantCount || this.participantCount + 1;
                     });
                     
-                    this.webrtcClient.on('participantLeft', (data) => {
-                        console.log('Participant left:', data);
-                        this.participantCount = Math.max(1, this.participantCount - 1);
-                    });
+                                this.webrtcClient.on('participantLeft', (data) => {
+                                    console.log('Participant left:', data);
+                                    this.participantCount = Math.max(1, this.participantCount - 1);
+                                });
                     
+                                this.webrtcClient.on('videoToggled', (isEnabled) => {
+                                    this.videoEnabled = isEnabled;
+                                });
+                    
+                                this.webrtcClient.on('audioToggled', (isEnabled) => {
+                                    this.micEnabled = isEnabled;
+                                });                    
                     // Initialize WebRTC and return the promise
                     return this.webrtcClient.init().then(() => {
                         console.log('WebRTC client initialized');
@@ -458,13 +465,14 @@ createApp({
             }
         },
 
-        // Fullscreen method
-        toggleFullscreen(peerId) {
-            if (this.fullscreenPeerId === peerId) {
-                this.fullscreenPeerId = null;
-            } else {
-                this.fullscreenPeerId = peerId;
-            }
+        // Fullscreen methods
+        enterFullscreen(peerId) {
+            if (window.innerWidth > 768) return; // Only on mobile
+            this.fullscreenPeerId = peerId;
+        },
+
+        exitFullscreen() {
+            this.fullscreenPeerId = null;
         },
 
         // Remote control methods for room creator

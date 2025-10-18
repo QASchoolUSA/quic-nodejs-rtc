@@ -1035,6 +1035,14 @@ header h1 {
     background: #7B1FA2;
 }
 
+.control-btn.tile-view-btn {
+    background: #9C27B0;
+}
+
+.control-btn.tile-view-btn:hover {
+    background: #7B1FA2;
+}
+
 .control-btn.active {
     background: #667eea;
 }
