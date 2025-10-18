@@ -178,85 +178,48 @@ class WebRTCClient {
             if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 throw new Error('WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.');
             }
-            
-            // First, get audio only
-            const audioConstraints = {
+
+            const constraints = {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true,
                     sampleRate: 48000,
                     channelCount: 2
+                },
+                video: {
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 },
+                    frameRate: { ideal: 30, max: 60 },
+                    facingMode: 'user'
                 }
             };
 
-            this.localStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-            
+            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            // Keep video off by default
+            const videoTrack = this.localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = false;
+                this.isVideoEnabled = false;
+            }
+
             // Update local video element
             const localVideo = document.getElementById('localVideo');
             if (localVideo) {
                 localVideo.srcObject = this.localStream;
             }
-            
+
             // Emit local stream event for Vue.js
             this.emit('localStream', this.localStream);
 
-            console.log('Got user media successfully (audio only)');
-            
-            // Ask for video permission
-            this.askForVideoPermission();
-            
+            console.log('Got user media successfully (audio and video)');
+
             return this.localStream;
         } catch (error) {
             console.error('Error accessing media devices:', error);
             this.emit('error', 'Failed to access camera/microphone: ' + error.message);
             throw error;
-        }
-    }
-
-    async askForVideoPermission() {
-        try {
-            const videoConstraints = {
-                video: this.currentCameraDeviceId ? 
-                    { 
-                        deviceId: { exact: this.currentCameraDeviceId },
-                        width: { ideal: 1280, max: 1920 },
-                        height: { ideal: 720, max: 1080 },
-                        frameRate: { ideal: 30, max: 60 },
-                        facingMode: 'user'
-                    } : 
-                    {
-                        width: { ideal: 1280, max: 1920 },
-                        height: { ideal: 720, max: 1080 },
-                        frameRate: { ideal: 30, max: 60 },
-                        facingMode: 'user'
-                    }
-            };
-
-            const videoStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
-            
-            // Add video track to existing stream
-            const videoTrack = videoStream.getVideoTracks()[0];
-            if (videoTrack) {
-                this.localStream.addTrack(videoTrack);
-                videoTrack.enabled = false; // Keep video off by default
-                this.isVideoEnabled = false;
-                
-                // Update local video element
-                const localVideo = document.getElementById('localVideo');
-                if (localVideo) {
-                    localVideo.srcObject = this.localStream;
-                }
-                
-                // Emit updated stream
-                this.emit('localStreamUpdated', this.localStream);
-                
-                console.log('Video permission granted, video track added but disabled');
-            }
-            
-        } catch (error) {
-            console.log('Video permission denied or failed:', error.message);
-            // Don't throw error, just log it - video is optional
         }
     }
 

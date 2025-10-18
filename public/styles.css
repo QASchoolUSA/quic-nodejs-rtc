@@ -1268,9 +1268,7 @@ header h1 {
     
     .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
         height: 50%;
-        height: calc(50vh - 40px);
-        height: calc(50dvh - 40px);
-        aspect-ratio: 1;
+        aspect-ratio: auto;
         margin: 0;
     }
     
@@ -1323,10 +1321,8 @@ header h1 {
     }
     
     .video-grid.layout-2 .video-container {
-        height: calc(50vh - 50px);
-        height: calc(50dvh - 50px);
-        max-height: calc(50vw - 4px);
-        aspect-ratio: 1;
+        height: 50%;
+        aspect-ratio: auto;
     }
     
     .video-grid.layout-3 .video-container {
