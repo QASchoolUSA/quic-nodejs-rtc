@@ -94,6 +94,14 @@ createApp({
             }
         },
 
+        handleFormSubmit() {
+            if (this.roomId.trim()) {
+                this.joinRoom();
+            } else {
+                this.createRoom();
+            }
+        },
+
         saveUsername() {
             localStorage.setItem('quic-rtc-username', this.username.trim());
         },

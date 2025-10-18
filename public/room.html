@@ -73,32 +73,54 @@
                 </svg>
             </button>
 
-            <button 
-                @click="toggleVideo" 
-                :class="['control-btn', videoEnabled ? 'video-on' : 'video-off']" 
-                title="Toggle Video"
-            >
-                <svg v-if="videoEnabled" class="video-icon" viewBox="0 0 24 24">
-                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-                </svg>
-                <svg v-else class="video-off-icon" viewBox="0 0 24 24">
-                    <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82l8.18 8.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
-                </svg>
-            </button>
-
-            <button 
-                @click="switchCamera" 
-                :class="['control-btn', 'camera-switch']" 
-                title="Switch Camera"
-                v-if="availableCameras.length > 1"
-            >
-                <svg class="camera-switch-icon" viewBox="0 0 24 24">
-                    <path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-                    <path d="M12 8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                    <path d="M16.5 6.5c-.28 0-.5.22-.5.5s.22.5.5.5.5-.22.5-.5-.22-.5-.5-.5z"/>
-                    <path d="M19 10l-2 2 2 2v-4z" transform="rotate(90 18 12)"/>
-                </svg>
-            </button>
+            <!-- Combined Video/Camera Control -->
+            <div class="video-camera-control" :class="{ 'has-dropdown': availableCameras.length > 1 }">
+                <button 
+                    @click="toggleVideo" 
+                    :class="['control-btn', 'video-camera-btn', videoEnabled ? 'video-on' : 'video-off']" 
+                    title="Toggle Video"
+                >
+                    <svg v-if="videoEnabled" class="video-icon" viewBox="0 0 24 24">
+                        <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                    </svg>
+                    <svg v-else class="video-off-icon" viewBox="0 0 24 24">
+                        <path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82l8.18 8.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+                    </svg>
+                    
+                    <!-- Dropdown Arrow -->
+                    <svg v-if="availableCameras.length > 1" 
+                         class="dropdown-arrow" 
+                         viewBox="0 0 24 24"
+                         @click.stop="toggleCameraDropdown"
+                    >
+                        <path d="M7 10l5 5 5-5z"/>
+                    </svg>
+                </button>
+                
+                <!-- Camera Dropdown -->
+                <div v-if="showCameraDropdown && availableCameras.length > 1" 
+                     class="camera-dropdown"
+                     @click.stop
+                >
+                    <div class="dropdown-header">
+                        <span>Select Camera</span>
+                        <button @click="toggleCameraDropdown" class="close-dropdown">×</button>
+                    </div>
+                    <div class="camera-list">
+                        <div 
+                            v-for="(camera, index) in availableCameras" 
+                            :key="camera.deviceId"
+                            :class="['camera-option', { 'active': index === currentCameraIndex }]"
+                            @click="selectCamera(index)"
+                        >
+                            <div class="camera-info">
+                                <span class="camera-name">{{ camera.label || `Camera ${index + 1}` }}</span>
+                                <span v-if="index === currentCameraIndex" class="current-indicator">Current</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <button 
                 @click="toggleViewMode" 

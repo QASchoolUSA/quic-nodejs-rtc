@@ -15,6 +15,7 @@ createApp({
             // Camera switching
             availableCameras: [],
             currentCameraIndex: 0,
+            showCameraDropdown: false,
             
             // View mode
             viewMode: 'grid', // 'grid' or 'focus'
@@ -131,6 +132,13 @@ createApp({
                     this.unreadMessages = 0;
                 }
             });
+            
+            // Handle clicks outside camera dropdown
+            document.addEventListener('click', (event) => {
+                if (this.showCameraDropdown && !event.target.closest('.video-camera-control')) {
+                    this.showCameraDropdown = false;
+                }
+            });
         },
         
         // Media controls
@@ -163,6 +171,39 @@ createApp({
             } catch (error) {
                 console.error('Error getting available cameras:', error);
                 this.availableCameras = [];
+            }
+        },
+
+        // Camera dropdown methods
+        toggleCameraDropdown() {
+            this.showCameraDropdown = !this.showCameraDropdown;
+        },
+
+        async selectCamera(cameraIndex) {
+            if (cameraIndex === this.currentCameraIndex) {
+                this.showCameraDropdown = false;
+                return;
+            }
+
+            try {
+                this.currentCameraIndex = cameraIndex;
+                const selectedCamera = this.availableCameras[cameraIndex];
+                
+                console.log('Switching to camera:', selectedCamera.label || `Camera ${cameraIndex + 1}`, 'Device ID:', selectedCamera.deviceId);
+                
+                // Switch camera in WebRTC client
+                if (this.webrtcClient) {
+                    await this.webrtcClient.switchCamera(selectedCamera.deviceId);
+                    this.showConnectionStatus(`Switched to ${selectedCamera.label || 'Camera ' + (cameraIndex + 1)}`, 'success');
+                } else {
+                    console.error('WebRTC client not available');
+                    this.showConnectionStatus('WebRTC client not available', 'error');
+                }
+                
+                this.showCameraDropdown = false;
+            } catch (error) {
+                console.error('Error switching camera:', error);
+                this.showConnectionStatus('Failed to switch camera: ' + error.message, 'error');
             }
         },
 
