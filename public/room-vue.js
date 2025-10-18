@@ -38,6 +38,9 @@ createApp({
         };
     },
                 async mounted() {
+                    this.setAppHeight();
+                    window.addEventListener('resize', this.setAppHeight);
+
                     // Get room ID and username from URL parameters
                     const urlParams = new URLSearchParams(window.location.search);
                     this.roomId = urlParams.get('room') || 'default-room';
@@ -465,6 +468,11 @@ createApp({
             }
         },
 
+        setAppHeight() {
+            const appHeight = window.innerHeight + 'px';
+            document.documentElement.style.setProperty('--app-height', appHeight);
+        },
+
         // Fullscreen methods
         enterFullscreen(peerId) {
             if (window.innerWidth > 768) return; // Only on mobile
@@ -498,5 +506,6 @@ createApp({
         if (this.webrtcClient) {
             this.webrtcClient.leaveRoom();
         }
+        window.removeEventListener('resize', this.setAppHeight);
     }
 }).mount('#app');
