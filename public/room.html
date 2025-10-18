@@ -17,8 +17,10 @@
         </div>
 
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid">
-            <div class="video-container local-video">
+        <div class="video-grid" ref="videoGrid" :class="{ 'fullscreen-active': fullscreenPeerId }">
+            <div class="video-container local-video"
+                 @dblclick="toggleFullscreen('local')"
+                 :class="{ 'fullscreen': fullscreenPeerId === 'local', 'hidden': fullscreenPeerId && fullscreenPeerId !== 'local' }">
                 <video 
                     ref="localVideo" 
                     autoplay 
@@ -34,7 +36,8 @@
                 v-for="peer in remotePeers" 
                 :key="peer.id" 
                 class="video-container remote-video"
-            >
+                @dblclick="toggleFullscreen(peer.id)"
+                :class="{ 'fullscreen': fullscreenPeerId === peer.id, 'hidden': fullscreenPeerId && fullscreenPeerId !== peer.id }">
                 <video 
                     :ref="`remoteVideo-${peer.id}`"
                     autoplay 
