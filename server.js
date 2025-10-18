@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const cors = require('cors');
 const helmet = require('helmet');
 const CryptoUtils = require('./crypto-utils');
+const WebTransportServer = require('./webtransport-server');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,9 @@ const server = http.createServer(app);
 
 // Initialize crypto utilities
 const cryptoUtils = new CryptoUtils();
+
+// Initialize WebTransport server
+const webTransportServer = new WebTransportServer(3001);
 
 // Security middleware
 app.use(helmet({
@@ -361,11 +365,15 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Start WebTransport server
+webTransportServer.start().catch(console.error);
+
 // Start the server (Render will handle HTTPS automatically)
 server.listen(PORT, HOST, () => {
-  console.log(`🚀 QUIC-RTC Server running on http://${HOST}:${PORT}`);
-  console.log(`📹 Video conferencing with QUIC support enabled`);
+  console.log(`🚀 WebRTC Server running on http://${HOST}:${PORT}`);
+  console.log(`📹 Video conferencing with WebTransport (QUIC) support enabled`);
   console.log(`🔐 End-to-end encryption active`);
+  console.log(`🌐 WebTransport server running on port 3001`);
   console.log(`🌐 Ready for Render deployment`);
 });
 

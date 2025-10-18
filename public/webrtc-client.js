@@ -1,7 +1,9 @@
-// WebRTC Client with QUIC Data Channels and Vue.js Integration
+// WebRTC Client with WebTransport (QUIC) Data Channels and Vue.js Integration
 class WebRTCClient {
     constructor() {
         this.socket = null;
+        this.webTransportClient = null;
+        this.useWebTransport = false;
         this.localStream = null;
         this.peers = new Map();
         this.roomId = null;
@@ -59,6 +61,15 @@ class WebRTCClient {
             
             if (!window.RTCPeerConnection) {
                 throw new Error('WebRTC not supported. Please use a modern browser.');
+            }
+            
+            // Check WebTransport support and initialize if available
+            if (typeof WebTransport !== 'undefined') {
+                this.webTransportClient = new WebTransportClient();
+                this.useWebTransport = true;
+                console.log('WebTransport (QUIC) support detected');
+            } else {
+                console.log('WebTransport not supported, using WebRTC Data Channels');
             }
             
             // Initialize Socket.IO connection

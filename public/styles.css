@@ -513,97 +513,111 @@ header h1 {
         --video-count: 9;
     }
     
-    /* Single participant - full width */
+    /* Single participant - full width with proper 16:9 aspect ratio */
     .video-grid[style*="--video-count: 1"] .video-container,
     .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
         width: calc(100% - 32px);
-        height: calc(100vh - 200px);
+        height: calc(56.25vw - 18px); /* 16:9 aspect ratio based on width */
         max-width: 800px;
+        max-height: calc(800px * 9 / 16); /* Max height for 16:9 */
         aspect-ratio: 16/9;
     }
     
-    /* Two participants - side by side */
+    /* Two participants - side by side with proper 16:9 aspect ratio */
     .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
-    /* Three participants - 2+1 layout */
+    /* Three participants - 2+1 layout with proper 16:9 aspect ratio */
     .video-grid:has(.video-container:nth-child(3):last-child) .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
     .video-grid:has(.video-container:nth-child(3):last-child) .video-container:nth-child(3) {
         width: calc(100% - 32px);
-        height: calc(50vh - 100px);
+        height: calc(56.25vw - 18px); /* 16:9 aspect ratio based on full width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
-    /* Four participants - 2x2 grid */
+    /* Four participants - 2x2 grid with proper 16:9 aspect ratio */
     .video-grid:has(.video-container:nth-child(4):last-child) .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
-    /* Five or more participants - 3+2 layout */
+    /* Five or more participants - 3+2 layout with proper 16:9 aspect ratio */
     .video-grid:has(.video-container:nth-child(5):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(6):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
         width: calc(33.333% - 8px);
-        height: calc(33.333vh - 70px);
+        height: calc(18.75vw - 4.5px); /* 16:9 aspect ratio based on third width */
+        max-height: calc(33.333vh - 70px);
         aspect-ratio: 16/9;
     }
     
-    /* For 7+ participants, use smaller tiles */
+    /* For 7+ participants, use smaller tiles with proper 16:9 aspect ratio */
     .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
     .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
         width: calc(25% - 6px);
-        height: calc(25vh - 50px);
+        height: calc(14.0625vw - 3.375px); /* 16:9 aspect ratio based on quarter width */
+        max-height: calc(25vh - 50px);
+        aspect-ratio: 16/9;
     }
     
     /* Fallback classes for browsers that don't support :has() */
     .video-grid.layout-1 .video-container {
         width: calc(100% - 32px);
-        height: calc(100vh - 200px);
+        height: calc(56.25vw - 18px); /* 16:9 aspect ratio based on width */
         max-width: 800px;
+        max-height: calc(800px * 9 / 16); /* Max height for 16:9 */
         aspect-ratio: 16/9;
     }
     
     .video-grid.layout-2 .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
     .video-grid.layout-3 .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
     .video-grid.layout-3 .video-container:nth-child(3) {
         width: calc(100% - 32px);
-        height: calc(50vh - 100px);
+        height: calc(56.25vw - 18px); /* 16:9 aspect ratio based on full width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
     .video-grid.layout-4 .video-container {
         width: calc(50% - 12px);
-        height: calc(50vh - 100px);
+        height: calc(28.125vw - 6.75px); /* 16:9 aspect ratio based on half width */
+        max-height: calc(50vh - 100px);
         aspect-ratio: 16/9;
     }
     
     .video-grid.layout-5 .video-container,
     .video-grid.layout-6 .video-container {
         width: calc(33.333% - 8px);
-        height: calc(33.333vh - 70px);
+        height: calc(18.75vw - 4.5px); /* 16:9 aspect ratio based on third width */
+        max-height: calc(33.333vh - 70px);
         aspect-ratio: 16/9;
     }
     
@@ -611,7 +625,9 @@ header h1 {
     .video-grid.layout-8 .video-container,
     .video-grid.layout-9 .video-container {
         width: calc(25% - 6px);
-        height: calc(25vh - 50px);
+        height: calc(14.0625vw - 3.375px); /* 16:9 aspect ratio based on quarter width */
+        max-height: calc(25vh - 50px);
+        aspect-ratio: 16/9;
     }
 }
 
@@ -1047,45 +1063,74 @@ header h1 {
     transform: translateY(-1px);
 }
 
-/* Mobile: Vertical stack layout like Google Meet */
+/* Mobile: Square videos stacked vertically like Google Meet */
 @media (max-width: 768px) {
     .video-grid {
         flex-direction: column;
-        padding: 8px;
-        gap: 6px;
+        padding: 4px;
+        gap: 4px;
         overflow-y: auto;
-        max-height: calc(100vh - 120px);
-        max-height: calc(100dvh - 120px);
+        max-height: calc(100vh - 100px);
+        max-height: calc(100dvh - 100px);
+        justify-content: flex-start;
+        align-items: stretch;
     }
     
     .video-container {
         width: 100%;
-        height: calc(50vh - 60px);
-        min-height: 200px;
-        max-height: 300px;
-        aspect-ratio: 16/9;
+        aspect-ratio: 1; /* Square videos on mobile */
+        flex-shrink: 0;
     }
     
-    /* Single participant on mobile - larger */
+    /* Single participant on mobile - full height square */
     .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
-        height: calc(100vh - 120px);
-        height: calc(100dvh - 120px);
-        max-height: none;
+        height: calc(100vh - 100px);
+        height: calc(100dvh - 100px);
+        max-height: calc(100vw - 8px); /* Square based on width */
+        aspect-ratio: 1;
     }
     
-    /* Two participants on mobile - equal height */
+    /* Two participants on mobile - equal square tiles */
     .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
-        height: calc(50vh - 60px);
-        height: calc(50dvh - 60px);
+        height: calc(50vh - 50px);
+        height: calc(50dvh - 50px);
+        max-height: calc(50vw - 4px); /* Square based on half width */
+        aspect-ratio: 1;
     }
     
-    /* Three or more participants - smaller tiles */
-    .video-grid:has(.video-container:nth-child(3):last-child) .video-container,
-    .video-grid:has(.video-container:nth-child(4):last-child) .video-container,
-    .video-grid:has(.video-container:nth-child(5):last-child) .video-container {
-        height: calc(33.333vh - 40px);
-        height: calc(33.333dvh - 40px);
-        min-height: 150px;
+    /* Three participants on mobile - equal square tiles */
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container {
+        height: calc(33.333vh - 35px);
+        height: calc(33.333dvh - 35px);
+        max-height: calc(33.333vw - 3px); /* Square based on third width */
+        aspect-ratio: 1;
+    }
+    
+    /* Four participants on mobile - 2x2 grid of squares */
+    .video-grid:has(.video-container:nth-child(4):last-child) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 4px;
+        height: calc(100vh - 100px);
+        height: calc(100dvh - 100px);
+    }
+    
+    .video-grid:has(.video-container:nth-child(4):last-child) .video-container {
+        height: auto;
+        aspect-ratio: 1;
+    }
+    
+    /* Five or more participants - smaller squares in vertical stack */
+    .video-grid:has(.video-container:nth-child(5):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(6):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
+        height: calc(25vh - 25px);
+        height: calc(25dvh - 25px);
+        max-height: calc(25vw - 2px);
+        aspect-ratio: 1;
     }
     
     .video-label {
@@ -1095,22 +1140,49 @@ header h1 {
     
     /* Mobile fallback classes */
     .video-grid.layout-1 .video-container {
-        height: calc(100vh - 120px);
-        height: calc(100dvh - 120px);
-        max-height: none;
+        height: calc(100vh - 100px);
+        height: calc(100dvh - 100px);
+        max-height: calc(100vw - 8px);
+        aspect-ratio: 1;
     }
     
     .video-grid.layout-2 .video-container {
-        height: calc(50vh - 60px);
-        height: calc(50dvh - 60px);
+        height: calc(50vh - 50px);
+        height: calc(50dvh - 50px);
+        max-height: calc(50vw - 4px);
+        aspect-ratio: 1;
     }
     
-    .video-grid.layout-3 .video-container,
-    .video-grid.layout-4 .video-container,
-    .video-grid.layout-5 .video-container {
-        height: calc(33.333vh - 40px);
-        height: calc(33.333dvh - 40px);
-        min-height: 150px;
+    .video-grid.layout-3 .video-container {
+        height: calc(33.333vh - 35px);
+        height: calc(33.333dvh - 35px);
+        max-height: calc(33.333vw - 3px);
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 4px;
+        height: calc(100vh - 100px);
+        height: calc(100dvh - 100px);
+    }
+    
+    .video-grid.layout-4 .video-container {
+        height: auto;
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-5 .video-container,
+    .video-grid.layout-6 .video-container,
+    .video-grid.layout-7 .video-container,
+    .video-grid.layout-8 .video-container,
+    .video-grid.layout-9 .video-container {
+        height: calc(25vh - 25px);
+        height: calc(25dvh - 25px);
+        max-height: calc(25vw - 2px);
+        aspect-ratio: 1;
     }
 }
 
@@ -1246,44 +1318,119 @@ header h1 {
 /* Additional mobile optimizations for very small screens - Room Page */
 @media (max-width: 480px) {
     .video-grid {
-        padding: 4px;
-        gap: 4px;
-        max-height: calc(100vh - 100px);
-        max-height: calc(100dvh - 100px);
+        padding: 2px;
+        gap: 2px;
+        max-height: calc(100vh - 80px);
+        max-height: calc(100dvh - 80px);
     }
     
     .video-container {
-        height: calc(40vh - 50px);
-        height: calc(40dvh - 50px);
-        min-height: 120px;
-        max-height: 200px;
+        width: 100%;
+        aspect-ratio: 1; /* Square videos on very small screens too */
+        flex-shrink: 0;
     }
     
-    /* Single participant on very small screens */
+    /* Single participant on very small screens - full square */
     .video-grid:has(.video-container:nth-child(1):last-child) .video-container {
-        height: calc(100vh - 100px);
-        height: calc(100dvh - 100px);
-        max-height: none;
+        height: calc(100vh - 80px);
+        height: calc(100dvh - 80px);
+        max-height: calc(100vw - 4px); /* Square based on width */
+        aspect-ratio: 1;
     }
     
-    /* Two participants on very small screens */
+    /* Two participants on very small screens - equal squares */
     .video-grid:has(.video-container:nth-child(2):last-child) .video-container {
-        height: calc(50vh - 50px);
-        height: calc(50dvh - 50px);
+        height: calc(50vh - 40px);
+        height: calc(50dvh - 40px);
+        max-height: calc(50vw - 2px); /* Square based on half width */
+        aspect-ratio: 1;
     }
     
-    /* Three or more participants on very small screens */
-    .video-grid:has(.video-container:nth-child(3):last-child) .video-container,
-    .video-grid:has(.video-container:nth-child(4):last-child) .video-container,
-    .video-grid:has(.video-container:nth-child(5):last-child) .video-container {
-        height: calc(30vh - 30px);
-        height: calc(30dvh - 30px);
-        min-height: 100px;
+    /* Three participants on very small screens - equal squares */
+    .video-grid:has(.video-container:nth-child(3):last-child) .video-container {
+        height: calc(33.333vh - 27px);
+        height: calc(33.333dvh - 27px);
+        max-height: calc(33.333vw - 1.5px); /* Square based on third width */
+        aspect-ratio: 1;
+    }
+    
+    /* Four participants on very small screens - 2x2 grid */
+    .video-grid:has(.video-container:nth-child(4):last-child) {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 2px;
+        height: calc(100vh - 80px);
+        height: calc(100dvh - 80px);
+    }
+    
+    .video-grid:has(.video-container:nth-child(4):last-child) .video-container {
+        height: auto;
+        aspect-ratio: 1;
+    }
+    
+    /* Five or more participants on very small screens - smaller squares */
+    .video-grid:has(.video-container:nth-child(5):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(6):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(7):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(8):last-child) .video-container,
+    .video-grid:has(.video-container:nth-child(9):last-child) .video-container {
+        height: calc(20vh - 20px);
+        height: calc(20dvh - 20px);
+        max-height: calc(20vw - 1px);
+        aspect-ratio: 1;
     }
     
     .video-label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         padding: 2px 4px;
+    }
+    
+    /* Very small screen fallback classes */
+    .video-grid.layout-1 .video-container {
+        height: calc(100vh - 80px);
+        height: calc(100dvh - 80px);
+        max-height: calc(100vw - 4px);
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-2 .video-container {
+        height: calc(50vh - 40px);
+        height: calc(50dvh - 40px);
+        max-height: calc(50vw - 2px);
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-3 .video-container {
+        height: calc(33.333vh - 27px);
+        height: calc(33.333dvh - 27px);
+        max-height: calc(33.333vw - 1.5px);
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 2px;
+        height: calc(100vh - 80px);
+        height: calc(100dvh - 80px);
+    }
+    
+    .video-grid.layout-4 .video-container {
+        height: auto;
+        aspect-ratio: 1;
+    }
+    
+    .video-grid.layout-5 .video-container,
+    .video-grid.layout-6 .video-container,
+    .video-grid.layout-7 .video-container,
+    .video-grid.layout-8 .video-container,
+    .video-grid.layout-9 .video-container {
+        height: calc(20vh - 20px);
+        height: calc(20dvh - 20px);
+        max-height: calc(20vw - 1px);
+        aspect-ratio: 1;
     }
     
     .controls {

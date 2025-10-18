@@ -1,11 +1,11 @@
-# QUIC-RTC Video Conferencing Application
+# WebRTC Video Conferencing Application
 
-A modern video conferencing application built with QUIC protocol, Node.js, and WebRTC, featuring end-to-end encryption and low-latency communication.
+A modern video conferencing application built with WebRTC and WebTransport (QUIC-based), featuring end-to-end encryption and low-latency communication.
 
 ## 🚀 Features
 
 - **Real-time Audio/Video Communication** - High-quality peer-to-peer video calls
-- **QUIC Protocol Support** - Low-latency data transfer with built-in security
+- **WebTransport Support** - QUIC-based low-latency data transfer with built-in security
 - **End-to-End Encryption** - AES-256-GCM encryption for all communications
 - **Screen Sharing** - Share your screen with other participants
 - **Encrypted Chat** - Secure real-time messaging
@@ -17,7 +17,7 @@ A modern video conferencing application built with QUIC protocol, Node.js, and W
 
 - **Backend**: Node.js, Express, Socket.IO
 - **Frontend**: Vanilla JavaScript, HTML5, CSS3
-- **Real-time Communication**: WebRTC, QUIC/WebTransport
+- **Real-time Communication**: WebRTC for media, WebTransport (QUIC) for data channels
 - **Encryption**: Web Crypto API (AES-256-GCM, ECDH)
 - **Security**: HTTPS/TLS, Self-signed certificates for development
 
