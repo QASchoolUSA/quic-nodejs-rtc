@@ -17,7 +17,7 @@
         </div>
 
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid" :class="{ 'fullscreen-active': fullscreenPeerId }">
+        <div class="video-grid" ref="videoGrid">
             <div class="video-container local-video"
                  @dblclick="enterFullscreen('local')"
                  :class="{ 'fullscreen': fullscreenPeerId === 'local', 'hidden': fullscreenPeerId && fullscreenPeerId !== 'local' }">
@@ -208,7 +208,7 @@
             <button 
                 v-if="fullscreenPeerId"
                 @click="exitFullscreen" 
-                class="control-btn tile-view-btn" 
+                class="control-btn main-btn tile-view-btn" 
                 title="Exit Fullscreen"
             >
                 <svg class="tile-view-icon" viewBox="0 0 24 24">
