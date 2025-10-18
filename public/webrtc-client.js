@@ -755,6 +755,7 @@ class WebRTCClient {
             enable: enable
         });
     }
+}
 
 // Export for use in room.js
 window.WebRTCClient = WebRTCClient;
