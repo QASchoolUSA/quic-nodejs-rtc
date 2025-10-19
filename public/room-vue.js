@@ -402,21 +402,20 @@ createApp({
             }
         },
 
-        // Update video grid layout class for better browser compatibility
         updateVideoGridLayout() {
             this.$nextTick(() => {
                 const videoGrid = this.$refs.videoGrid;
                 if (videoGrid) {
-                    // Remove existing layout classes
-                    for (let i = 1; i <= 9; i++) {
-                        videoGrid.classList.remove(`layout-${i}`);
+                    const totalParticipants = this.remotePeers.length + 1;
+                    let cols = 1;
+                    if (totalParticipants === 2) {
+                        cols = 2;
+                    } else if (totalParticipants >= 3 && totalParticipants <= 4) {
+                        cols = 2;
+                    } else if (totalParticipants >= 5 && totalParticipants <= 9) {
+                        cols = 3;
                     }
-                    
-                    // Add appropriate layout class based on total participants (including local)
-                    const totalParticipants = this.remotePeers.length + 1; // +1 for local user
-                    if (totalParticipants > 0 && totalParticipants <= 9) {
-                        videoGrid.classList.add(`layout-${totalParticipants}`);
-                    }
+                    videoGrid.style.setProperty('--cols', cols);
                 }
             });
         },
