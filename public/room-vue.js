@@ -516,6 +516,10 @@ createApp({
         },
         
         showConnectionStatus(message, type) {
+            // During initial load, downgrade errors to warnings to avoid flashing the overlay
+            if (this.isInitializing && type === 'error') {
+                type = 'warning';
+            }
             this.connectionStatus = { message, type };
             
             // Auto-hide after 5 seconds for non-error messages
