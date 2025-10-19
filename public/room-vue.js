@@ -35,6 +35,7 @@ createApp({
 
             // Fullscreen state
             fullscreenPeerId: null,
+            isRoomCreator: false,
         };
     },
                 async mounted() {
@@ -52,6 +53,11 @@ createApp({
                         
                         // Get available devices now that permissions are granted
                         await this.getAvailableDevices();
+
+                        // Listen for devices being added/removed (e.g., connecting AirPods)
+                        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+                            navigator.mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
+                        }
                         
                         // Join the room
                         this.joinRoom();
@@ -79,6 +85,11 @@ createApp({
                             name: this.localUserName,
                             isCreator: this.isRoomCreator 
                         });
+
+                        // Auto-copy a clean room link for the creator
+                        if (this.isRoomCreator) {
+                            this.copyRoomLink();
+                        }
                     }
                 },
         
@@ -97,24 +108,25 @@ createApp({
                         .map(([name]) => name);
                     
                     if (missingAPIs.length > 0) {
-                        this.showConnectionStatus(
-                            `Missing required APIs: ${missingAPIs.join(', ')}. Please use a modern browser.`,
-                            'error'
-                        );
+                        // Keep message minimal during preflight; actual init will surface detailed errors
+                        console.warn('Missing required APIs:', missingAPIs.join(', '));
                         return false;
                     }
                     
-                    // Check if running on HTTPS or localhost
-                    const isSecure = location.protocol === 'https:' || 
-                                   location.hostname === 'localhost' || 
-                                   location.hostname === '127.0.0.1';
+                    // Consider secure contexts and common local IPs as acceptable for dev
+                    const hostname = location.hostname;
+                    const isLocalIp = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(hostname);
+                    const isDevHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || isLocalIp;
+                    const isSecure = window.isSecureContext || location.protocol === 'https:' || isDevHost;
                     
                     if (!isSecure) {
+                        // Show a non-blocking warning instead of an error to avoid flashing the error overlay
                         this.showConnectionStatus(
-                            'WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.',
-                            'error'
+                            'Tip: Use HTTPS or localhost for best camera/mic support.',
+                            'warning'
                         );
-                        return false;
+                        // Proceed anyway; getUserMedia may still work depending on browser
+                        return true;
                     }
                     
                     return true;
@@ -244,13 +256,56 @@ createApp({
         
                         if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
                             this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
+                            this.currentCameraIndex = 0;
                         }
                         if (this.availableMics.length > 0 && this.webrtcClient && !this.webrtcClient.currentMicDeviceId) {
                             this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
+                            this.currentMicIndex = 0;
                         }
                     } catch (error) {
                         console.error('Error getting available devices:', error);
                         this.showConnectionStatus('Could not list media devices.', 'error');
+                    }
+                },
+
+                async handleDeviceChange() {
+                    try {
+                        console.log('Media devices changed — re-enumerating...');
+                        await this.getAvailableDevices();
+                        
+                        // Keep current mic selection if still present
+                        const currentMicId = this.webrtcClient?.currentMicDeviceId;
+                        if (currentMicId) {
+                            const idx = this.availableMics.findIndex(d => d.deviceId === currentMicId);
+                            if (idx !== -1) {
+                                this.currentMicIndex = idx;
+                            } else if (this.availableMics.length > 0) {
+                                // Active mic disconnected, switch to first available
+                                this.currentMicIndex = 0;
+                                const firstMic = this.availableMics[0];
+                                if (firstMic && this.webrtcClient) {
+                                    await this.webrtcClient.switchMicrophone(firstMic.deviceId);
+                                    this.showConnectionStatus(`Microphone changed to ${firstMic.label || 'default'}`, 'success');
+                                }
+                            }
+                        }
+                        
+                        // Update camera index if needed (do not auto-switch camera to avoid surprises)
+                        const currentCamId = this.webrtcClient?.currentCameraDeviceId;
+                        if (currentCamId) {
+                            const camIdx = this.availableCameras.findIndex(d => d.deviceId === currentCamId);
+                            if (camIdx !== -1) {
+                                this.currentCameraIndex = camIdx;
+                            } else if (this.availableCameras.length > 0) {
+                                this.currentCameraIndex = 0;
+                            }
+                        }
+                        
+                        // Update dropdown visibility if counts changed
+                        if (this.availableMics.length <= 1) this.showMicDropdown = false;
+                        if (this.availableCameras.length <= 1) this.showCameraDropdown = false;
+                    } catch (error) {
+                        console.error('Error handling device change:', error);
                     }
                 },
         // Camera dropdown methods
@@ -514,5 +569,8 @@ createApp({
             this.webrtcClient.leaveRoom();
         }
         window.removeEventListener('resize', this.setAppHeight);
+        if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+            navigator.mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
+        }
     }
 }).mount('#app');
