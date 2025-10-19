@@ -240,6 +240,18 @@ createApp({
                             this.showMicDropdown = false;
                         }
                     });
+                    
+                    // Sync UI if user exits native fullscreen (ESC or gesture)
+                    document.addEventListener('fullscreenchange', () => {
+                        if (!document.fullscreenElement) {
+                            this.fullscreenPeerId = null;
+                        }
+                    });
+                    document.addEventListener('webkitfullscreenchange', () => {
+                        if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
+                            this.fullscreenPeerId = null;
+                        }
+                    });
                 },
                 
                 // Media controls
@@ -582,12 +594,49 @@ createApp({
 
         // Fullscreen methods
         enterFullscreen(peerId) {
-            if (window.innerWidth > 768) return; // Only on mobile
+            // Allow fullscreen on both mobile and desktop
             this.fullscreenPeerId = peerId;
+            
+            this.$nextTick(() => {
+                let container = null;
+                if (peerId === 'local') {
+                    container = this.$refs.localContainer;
+                } else {
+                    const containers = this.$refs[`remoteContainer-${peerId}`];
+                    container = containers && containers[0];
+                }
+                
+                const videoEl = peerId === 'local'
+                    ? this.$refs.localVideo
+                    : (this.$refs[`remoteVideo-${peerId}`] && this.$refs[`remoteVideo-${peerId}`][0]);
+                
+                // Try Fullscreen API first
+                const requestFS = (container && (container.requestFullscreen || container.webkitRequestFullscreen))
+                    || (videoEl && (videoEl.requestFullscreen || videoEl.webkitRequestFullscreen));
+                if (requestFS) {
+                    try {
+                        requestFS.call(container || videoEl);
+                        return;
+                    } catch (e) {
+                        console.warn('Fullscreen API failed, using CSS fallback.', e);
+                    }
+                }
+                
+                // CSS fallback: classes already applied via fullscreenPeerId
+                this.updateVideoGridLayout();
+            });
         },
 
         exitFullscreen() {
             this.fullscreenPeerId = null;
+            try {
+                const exitFS = document.exitFullscreen || document.webkitExitFullscreen;
+                if (exitFS && (document.fullscreenElement || document.webkitFullscreenElement)) {
+                    exitFS.call(document);
+                }
+            } catch (e) {
+                console.warn('Exit fullscreen failed:', e);
+            }
             this.updateVideoGridLayout();
         },
 
