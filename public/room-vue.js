@@ -29,6 +29,9 @@ createApp({
             // Connection
             connectionStatus: null,
             isInitializing: true,
+            // Add a short grace period for participants right after join
+            isJoining: false,
+            joinGraceTimeoutId: null,
             
             // WebRTC client
             webrtcClient: null,
@@ -80,6 +83,14 @@ createApp({
                         // Check if this is a room creator (first person to join)
                         const urlParams = new URLSearchParams(window.location.search);
                         this.isRoomCreator = urlParams.get('creator') === 'true';
+                        
+                        // Start a brief grace period to avoid flashing error overlays
+                        this.isJoining = true;
+                        if (this.joinGraceTimeoutId) clearTimeout(this.joinGraceTimeoutId);
+                        this.joinGraceTimeoutId = setTimeout(() => {
+                            this.isJoining = false;
+                            this.joinGraceTimeoutId = null;
+                        }, 4000);
                         
                         this.webrtcClient.joinRoom(this.roomId, { 
                             name: this.localUserName,
@@ -429,6 +440,15 @@ createApp({
                 });
             }
             
+            // End join grace period once we have a remote stream
+            if (this.isJoining) {
+                this.isJoining = false;
+                if (this.joinGraceTimeoutId) {
+                    clearTimeout(this.joinGraceTimeoutId);
+                    this.joinGraceTimeoutId = null;
+                }
+            }
+            
             // Update participant count
             this.participantCount = this.remotePeers.length + 1;
             
@@ -516,8 +536,8 @@ createApp({
         },
         
         showConnectionStatus(message, type) {
-            // During initial load, downgrade errors to warnings to avoid flashing the overlay
-            if (this.isInitializing && type === 'error') {
+            // During initial load and early join handshake, downgrade errors to warnings
+            if ((this.isInitializing || this.isJoining) && type === 'error') {
                 type = 'warning';
             }
             this.connectionStatus = { message, type };
@@ -592,6 +612,10 @@ createApp({
     beforeUnmount() {
         if (this.webrtcClient) {
             this.webrtcClient.leaveRoom();
+        }
+        if (this.joinGraceTimeoutId) {
+            clearTimeout(this.joinGraceTimeoutId);
+            this.joinGraceTimeoutId = null;
         }
         window.removeEventListener('resize', this.setAppHeight);
         if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
