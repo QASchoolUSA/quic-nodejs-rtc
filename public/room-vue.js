@@ -479,11 +479,32 @@ createApp({
         async copyRoomLink() {
             const roomLink = `${window.location.origin}/room.html?room=${this.roomId}`;
             try {
-                await navigator.clipboard.writeText(roomLink);
-                this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(roomLink);
+                    this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                } else {
+                    // Fallback: try execCommand copy (may require user gesture)
+                    const textarea = document.createElement('textarea');
+                    textarea.value = roomLink;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    const ok = document.execCommand && document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    if (ok) {
+                        this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                    } else {
+                        // Do not show an error overlay here; just a gentle prompt
+                        this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
+                    }
+                }
             } catch (error) {
                 console.error('Failed to copy room link:', error);
-                this.showConnectionStatus('Failed to copy room link', 'error');
+                // Avoid flashing error overlay for non-critical copy failures
+                this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
             }
         },
         
