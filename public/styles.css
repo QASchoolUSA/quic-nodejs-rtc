@@ -1240,85 +1240,87 @@ header h1 {
 /* Mobile: Square videos stacked vertically like Google Meet */
 @media (max-width: 768px) {
     .video-grid {
-        flex-direction: column;
-        padding: 0;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-auto-rows: min-content;
         gap: 2px;
+        width: 100%;
+        height: 100%;
         overflow: hidden;
-        justify-content: center;
-        align-items: stretch; /* Stretch to fill width */
-    }
-    
-    .video-container {
-        flex-shrink: 0;
-        border-radius: 0;
-        width: 100%; /* Fill the width */
-    }
-    
-    /* Single participant on mobile - full screen */
-    .video-grid.layout-1 .video-container {
-        height: 100%;
-        aspect-ratio: auto;
-    }
-    
-    /* Two participants on mobile - two rectangles filling the height */
-    .video-grid.layout-2 .video-container {
-        height: calc(50% - 1px); /* 50% minus half the gap */
-        aspect-ratio: auto; /* Allow rectangle shape */
-    }
-    
-    /* Three participants on mobile - stacked rectangles */
-    .video-grid.layout-3 .video-container {
-        height: calc(33.333% - 1.34px);
-        aspect-ratio: auto;
-    }
-    
-    /* Four participants on mobile - 2x2 grid */
-    .video-grid.layout-4 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 2px;
-        width: 100%;
-        height: 100%;
-    }
-    
-    .video-grid.layout-4 .video-container {
-        height: auto; /* Let grid determine height */
-        width: auto; /* Let grid determine width */
-        aspect-ratio: 1; /* Keep squares for grid */
-    }
-    
-    /* 5-6 participants */
-    .video-grid.layout-5,
-    .video-grid.layout-6 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr 1fr;
-        gap: 2px;
-        width: 100%;
-        height: 100%;
+        align-content: center; /* Center vertically */
     }
 
-    /* 7-9 participants */
+    .video-container {
+        border-radius: 0;
+        width: 100%;
+        aspect-ratio: 1/1; /* Make it a square */
+        overflow: hidden;
+    }
+
+    /* Single participant: full height */
+    .video-grid.layout-1 .video-container {
+        grid-template-rows: 1fr;
+        height: 100%;
+        aspect-ratio: auto;
+    }
+
+    /* Two participants: 2 rows */
+    .video-grid.layout-2 {
+        grid-template-rows: 1fr 1fr;
+    }
+    .video-grid.layout-2 .video-container {
+        height: 100%;
+        width: 100%;
+        aspect-ratio: auto;
+    }
+
+    /* Three participants: 3 rows */
+    .video-grid.layout-3 {
+        grid-template-rows: 1fr 1fr 1fr;
+    }
+    .video-grid.layout-3 .video-container {
+        height: 100%;
+        width: 100%;
+        aspect-ratio: auto;
+    }
+
+    /* Four participants: 2x2 grid */
+    .video-grid.layout-4 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+    }
+    .video-grid.layout-4 .video-container {
+        height: 100%;
+        width: 100%;
+        aspect-ratio: 1/1;
+    }
+
+    /* Five & Six participants: 2x3 grid */
+    .video-grid.layout-5,
+    .video-grid.layout-6 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
+    }
+    .video-grid.layout-5 .video-container,
+    .video-grid.layout-6 .video-container {
+        height: 100%;
+        width: 100%;
+        aspect-ratio: 1/1;
+    }
+
+    /* Seven, Eight & Nine participants: 3x3 grid */
     .video-grid.layout-7,
     .video-grid.layout-8,
     .video-grid.layout-9 {
-        display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: 1fr 1fr 1fr;
-        gap: 2px;
-        width: 100%;
-        height: 100%;
     }
-
-    .video-grid.layout-5 .video-container,
-    .video-grid.layout-6 .video-container,
     .video-grid.layout-7 .video-container,
     .video-grid.layout-8 .video-container,
     .video-grid.layout-9 .video-container {
-        height: auto;
-        width: auto;
-        aspect-ratio: 1; /* Keep squares for grid */
+        height: 100%;
+        width: 100%;
+        aspect-ratio: 1/1;
     }
 
     .video-label {

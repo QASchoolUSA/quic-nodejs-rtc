@@ -408,11 +408,15 @@ createApp({
                 const videoGrid = this.$refs.videoGrid;
                 if (videoGrid) {
                     // Remove existing layout classes
-                    videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6', 'layout-7', 'layout-8', 'layout-9');
+                    for (let i = 1; i <= 9; i++) {
+                        videoGrid.classList.remove(`layout-${i}`);
+                    }
                     
                     // Add appropriate layout class based on total participants (including local)
                     const totalParticipants = this.remotePeers.length + 1; // +1 for local user
-                    videoGrid.classList.add(`layout-${totalParticipants}`);
+                    if (totalParticipants > 0 && totalParticipants <= 9) {
+                        videoGrid.classList.add(`layout-${totalParticipants}`);
+                    }
                 }
             });
         },
