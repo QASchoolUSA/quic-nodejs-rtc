@@ -144,15 +144,15 @@ class WebRTCClient {
                     try {
                         publicKeyJwk = JSON.parse(yourKeyPair.publicKey);
                     } catch (e) {
-                        console.warn('Public key is not valid JSON; expected JWK object or JSON string');
-                        throw e;
+                        console.warn('Public key is not valid JSON; expected JWK object or JSON string. Skipping import.');
+                        publicKeyJwk = null;
                     }
                 } else {
                     publicKeyJwk = yourKeyPair.publicKey;
                 }
 
                 this.keyPair = {
-                    publicKey: await this.cryptoClient.importPublicKey(publicKeyJwk),
+                    publicKey: publicKeyJwk ? await this.cryptoClient.importPublicKey(publicKeyJwk) : null,
                     privateKey: yourKeyPair.privateKey // Keep as string for now
                 };
                 
