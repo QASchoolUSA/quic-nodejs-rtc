@@ -8,6 +8,7 @@
 </head>
 <body class="room-page">
     <div id="app" class="room-container">
+
         <!-- Loading State -->
         <div v-if="isInitializing" class="loading-overlay">
             <div class="loading-content">
@@ -18,6 +19,7 @@
 
         <!-- Video Grid -->
         <div class="video-grid" ref="videoGrid" :class="{ 'focused-active': focusedPeerId }">
+
             <div class="video-container local-video"
                  ref="localContainer"
                  @dblclick="enterFocused('local')"
@@ -30,6 +32,9 @@
                     playsinline
                     preload="none"
                 ></video>
+                <div :class="['transport-label', transportType === 'quic' ? 'label-quic' : 'label-websocket', transportLabelPosition === 'center' ? 'label-center' : 'label-top-left']">
+                    {{ transportType === 'quic' ? 'QUIC' : 'WebSocket' }}
+                </div>
                 <div class="video-label">{{ localUserName || 'You' }}</div>
             </div>
             <!-- Remote videos will be added dynamically -->
@@ -102,7 +107,7 @@
         </div>
 
         <!-- Controls -->
-        <div class="controls">
+        <div :class="['controls', 'overlay-controls', overlayPosition]">
             <!-- Microphone Control Group -->
             <div class="control-group">
                 <button 
