@@ -138,8 +138,21 @@ class WebRTCClient {
                 this.roomKey = await this.cryptoClient.importKey(roomKeys.encryptionKey);
                 
                 // Store our key pair (we'll use this for peer-to-peer key exchange)
+                // Accept either JWK object or JSON-stringified JWK for public key
+                let publicKeyJwk;
+                if (typeof yourKeyPair.publicKey === 'string') {
+                    try {
+                        publicKeyJwk = JSON.parse(yourKeyPair.publicKey);
+                    } catch (e) {
+                        console.warn('Public key is not valid JSON; expected JWK object or JSON string. Skipping import.');
+                        publicKeyJwk = null;
+                    }
+                } else {
+                    publicKeyJwk = yourKeyPair.publicKey;
+                }
+
                 this.keyPair = {
-                    publicKey: await this.cryptoClient.importPublicKey(JSON.parse(yourKeyPair.publicKey)),
+                    publicKey: publicKeyJwk ? await this.cryptoClient.importPublicKey(publicKeyJwk) : null,
                     privateKey: yourKeyPair.privateKey // Keep as string for now
                 };
                 

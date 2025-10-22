@@ -593,13 +593,13 @@ header h1 {
 }
 
 .room-container {
-  position: relative;
-  width: 100%;
-  height: var(--app-height, 100vh);
-  min-height: var(--app-height, 100vh);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+    position: relative;
+    width: 100%;
+    height: var(--app-height, 100vh);
+    min-height: var(--app-height, 100vh);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .video-grid {
@@ -612,14 +612,15 @@ header h1 {
     align-items: center;
     min-height: 0;
     overflow: hidden;
+    position: relative; /* allow absolute overlay within grid */
 }
 
 .video-container {
     position: relative;
     width: 100%;
-    height: 0;
-    padding-bottom: 100%; /* 1:1 aspect ratio */
-    background: #2a2a2a;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    background: #000;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -627,11 +628,13 @@ header h1 {
 
 .video-container video {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: #000;
 }
 
 /* Global fullscreen support for video tiles */
@@ -653,7 +656,8 @@ header h1 {
 .video-container.fullscreen video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background-color: #000;
 }
 
 .video-container.hidden {
@@ -678,23 +682,12 @@ header h1 {
  }
  
  .video-container.focused video {
-     width: 100%;
-     height: 100%;
-     object-fit: cover;
- }
-
-.video-label {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    backdrop-filter: blur(4px);
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-color: #000;
 }
+
 
 .local-video {
     border: 2px solid #3b82f6;
@@ -757,6 +750,101 @@ header h1 {
 
 .control-btn.secondary-btn:hover {
     background: rgba(71, 85, 105, 0.8);
+}
+
+/* Overlay controls on video */
+.overlay-controls {
+    position: absolute;
+    z-index: 260; /* above videos and below label */
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: var(--control-gap, 0.6rem);
+    padding: 0.6rem 0.9rem;
+    border-radius: 24px;
+    background: rgba(32, 33, 36, 0.6);
+    backdrop-filter: saturate(180%) blur(8px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+    --control-size: clamp(3rem, 6vw, 3.5rem); /* min 48px for touch */
+    --control-gap: clamp(0.4rem, 1.2vw, 0.75rem);
+    max-width: calc(100% - 1rem);
+    white-space: nowrap;
+}
+
+/* Position variants */
+.overlay-bottom-center {
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.overlay-bottom-right {
+    bottom: 16px;
+    right: 16px;
+}
+
+.overlay-top-center {
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Ensure buttons remain visible and interactive */
+.overlay-controls .control-group {
+    display: flex;
+    align-items: center;
+    gap: var(--control-gap);
+    background: rgba(42, 42, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    flex-wrap: nowrap;
+}
+
+.overlay-controls .control-btn {
+    outline: none;
+    flex: 0 0 auto;
+}
+
+/* Responsive sizes for buttons inside overlay */
+.overlay-controls .control-btn.main-btn {
+    width: var(--control-size);
+    height: var(--control-size);
+    min-width: var(--control-size);
+    min-height: var(--control-size);
+}
+.overlay-controls .control-btn.secondary-btn {
+    width: calc(var(--control-size) * 0.75);
+    height: calc(var(--control-size) * 0.75);
+    min-width: calc(var(--control-size) * 0.75);
+    min-height: calc(var(--control-size) * 0.75);
+    border-radius: 999px;
+}
+.overlay-controls .control-btn svg {
+    width: calc(var(--control-size) * 0.5);
+    height: calc(var(--control-size) * 0.5);
+}
+.overlay-controls .control-btn.secondary-btn svg {
+    width: calc(var(--control-size) * 0.4);
+    height: calc(var(--control-size) * 0.4);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .overlay-controls {
+        gap: 0.4rem;
+        padding: 0.4rem 0.6rem;
+        border-radius: 20px;
+    }
+    .overlay-bottom-right { right: 12px; bottom: 12px; }
+    .overlay-bottom-center { bottom: 12px; }
+    .overlay-top-center { top: 12px; }
+}
+
+@media (max-width: 480px) {
+    .overlay-controls {
+        gap: 0.3rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 18px;
+    }
 }
 
 .control-btn svg {
@@ -1199,10 +1287,6 @@ header h1 {
         aspect-ratio: 1/1;
     }
 
-    .video-label {
-        font-size: 0.8rem;
-        padding: 3px 6px;
-    }
 
     /* Fullscreen Styles */
     .video-grid.fullscreen-active {
@@ -1272,9 +1356,32 @@ header h1 {
     }
     
     .room-container {
-        height: 100vh;
-        height: 100dvh; /* Dynamic viewport height for mobile */
-        overflow: hidden;
+    height: var(--app-height, 100dvh); /* Use JS-calculated height to avoid iOS Safari scroll */
+    overflow: hidden;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden; /* prevent page scroll, especially on iOS Safari */
+}
+
+.video-grid {
+    height: 100%;
+    overflow: hidden; /* keep overlays from causing scroll */
+}
+    
+    /* Enhanced breakpoints for controls sizing */
+    @media (max-width: 767px) {
+        .overlay-controls { --control-size: 3rem; --control-gap: 0.5rem; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .overlay-controls { --control-size: 3.25rem; --control-gap: 0.6rem; }
+    }
+    @media (min-width: 1024px) and (max-width: 1439px) {
+        .overlay-controls { --control-size: 3.25rem; --control-gap: 0.7rem; }
+    }
+    @media (min-width: 1440px) {
+        .overlay-controls { --control-size: 3.5rem; --control-gap: 0.8rem; }
     }
     
     .controls {
@@ -1425,10 +1532,6 @@ header h1 {
         aspect-ratio: 1;
     }
     
-    .video-label {
-        font-size: 0.7rem;
-        padding: 2px 4px;
-    }
     
     /* Very small screen fallback classes */
     .video-grid.layout-1 .video-container {

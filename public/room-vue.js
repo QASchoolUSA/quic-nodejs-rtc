@@ -42,6 +42,8 @@ createApp({
             doubleTapThreshold: 300,
             fullscreenPeerId: null,
             isRoomCreator: false,
+            showRemoteControls: false,
+            overlayPosition: 'overlay-bottom-center',
         };
     },
                 async mounted() {
@@ -100,10 +102,8 @@ createApp({
                             isCreator: this.isRoomCreator 
                         });
 
-                        // Auto-copy a clean room link for the creator
-                        if (this.isRoomCreator) {
-                            this.copyRoomLink();
-                        }
+                        // Removed auto-copy; use explicit user action to copy link
+                        // this.copyRoomLink();
                     }
                 },
         
@@ -206,7 +206,8 @@ createApp({
                     // Initialize WebRTC and return the promise
                     return this.webrtcClient.init().then(() => {
                         console.log('WebRTC client initialized');
-                        this.showConnectionStatus('Connected to server', 'success');
+                        // Set transport type label based on runtime capability/use
+                                this.showConnectionStatus('Connected to server', 'success');
                     }).catch(error => {
                         console.error('Failed to initialize WebRTC:', error);
                         if (error.name === 'NotAllowedError') {

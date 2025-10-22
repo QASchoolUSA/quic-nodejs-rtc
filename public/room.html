@@ -8,6 +8,7 @@
 </head>
 <body class="room-page">
     <div id="app" class="room-container">
+
         <!-- Loading State -->
         <div v-if="isInitializing" class="loading-overlay">
             <div class="loading-content">
@@ -18,6 +19,7 @@
 
         <!-- Video Grid -->
         <div class="video-grid" ref="videoGrid" :class="{ 'focused-active': focusedPeerId }">
+
             <div class="video-container local-video"
                  ref="localContainer"
                  @dblclick="enterFocused('local')"
@@ -30,7 +32,7 @@
                     playsinline
                     preload="none"
                 ></video>
-                <div class="video-label">{{ localUserName || 'You' }}</div>
+                
             </div>
             <!-- Remote videos will be added dynamically -->
             <div 
@@ -47,7 +49,6 @@
                     playsinline
                     preload="none"
                 ></video>
-                <div class="video-label">{{ peer.username || 'Participant' }}</div>
             </div>
         </div>
 
@@ -102,7 +103,7 @@
         </div>
 
         <!-- Controls -->
-        <div class="controls">
+        <div :class="['controls', 'overlay-controls', overlayPosition]">
             <!-- Microphone Control Group -->
             <div class="control-group">
                 <button 
@@ -232,7 +233,7 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/webtransport-client.js"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="crypto-client.js"></script>
     <script src="webrtc-client.js"></script>
     <script src="room-vue.js"></script>
