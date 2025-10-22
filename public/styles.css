@@ -1281,6 +1281,63 @@ header h1 {
     z-index: -1;
 }
 
+/* Mobile-specific focused mode overrides */
+@media (max-width: 768px) {
+    /* Ensure focused mode works on mobile by overriding grid layouts */
+    .video-grid.focused-active {
+        display: block !important;
+        grid-template-columns: none !important;
+        grid-template-rows: none !important;
+        gap: 0 !important;
+        align-content: initial !important;
+    }
+    
+    /* Focused container takes full viewport on mobile */
+    .video-grid.focused-active .video-container.focused {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: calc(var(--vh, 1vh) * 100) !important;
+        aspect-ratio: auto !important;
+        border-radius: 0 !important;
+        background: #000 !important;
+        z-index: 1900 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Video sizing in mobile focused mode */
+    .video-grid.focused-active .video-container.focused video {
+        max-width: 100% !important;
+        max-height: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+        aspect-ratio: auto !important;
+    }
+    
+    /* Mobile aspect-aware rules with higher specificity */
+    .video-grid.focused-active .video-container.focused.portrait video {
+        height: 100vh !important;
+        height: calc(var(--vh, 1vh) * 100) !important;
+        width: auto !important;
+    }
+    
+    .video-grid.focused-active .video-container.focused.landscape video {
+        width: 100vw !important;
+        height: auto !important;
+    }
+    
+    .video-grid.focused-active .video-container.focused.square video {
+        width: min(100vw, 100vh) !important;
+        width: min(100vw, calc(var(--vh, 1vh) * 100)) !important;
+        height: min(100vw, 100vh) !important;
+        height: min(100vw, calc(var(--vh, 1vh) * 100)) !important;
+    }
+}
+
 /* Exit button for focused mode */
 .focus-exit-btn {
     position: fixed;
@@ -1306,7 +1363,7 @@ header h1 {
 
 /* Mobile: Square videos stacked vertically like Google Meet */
 @media (max-width: 768px) {
-    .video-grid {
+    .video-grid:not(.focused-active) {
         display: grid;
         grid-template-columns: 1fr;
         grid-auto-rows: min-content;
@@ -1317,7 +1374,7 @@ header h1 {
         align-content: center; /* Center vertically */
     }
 
-    .video-container {
+    .video-grid:not(.focused-active) .video-container {
         border-radius: 0;
         width: 100%;
         aspect-ratio: 1/1; /* Make it a square */
@@ -1325,66 +1382,66 @@ header h1 {
     }
 
     /* Single participant: full height */
-    .video-grid.layout-1 .video-container {
+    .video-grid.layout-1:not(.focused-active) .video-container {
         grid-template-rows: 1fr;
         height: 100%;
         aspect-ratio: auto;
     }
 
     /* Two participants: 2 rows */
-    .video-grid.layout-2 {
+    .video-grid.layout-2:not(.focused-active) {
         grid-template-rows: 1fr 1fr;
     }
-    .video-grid.layout-2 .video-container {
+    .video-grid.layout-2:not(.focused-active) .video-container {
         height: 100%;
         width: 100%;
         aspect-ratio: auto;
     }
 
     /* Three participants: 3 rows */
-    .video-grid.layout-3 {
+    .video-grid.layout-3:not(.focused-active) {
         grid-template-rows: 1fr 1fr 1fr;
     }
-    .video-grid.layout-3 .video-container {
+    .video-grid.layout-3:not(.focused-active) .video-container {
         height: 100%;
         width: 100%;
         aspect-ratio: auto;
     }
 
     /* Four participants: 2x2 grid */
-    .video-grid.layout-4 {
+    .video-grid.layout-4:not(.focused-active) {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
     }
-    .video-grid.layout-4 .video-container {
+    .video-grid.layout-4:not(.focused-active) .video-container {
         height: 100%;
         width: 100%;
         aspect-ratio: 1/1;
     }
 
     /* Five & Six participants: 2x3 grid */
-    .video-grid.layout-5,
-    .video-grid.layout-6 {
+    .video-grid.layout-5:not(.focused-active),
+    .video-grid.layout-6:not(.focused-active) {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr 1fr;
     }
-    .video-grid.layout-5 .video-container,
-    .video-grid.layout-6 .video-container {
+    .video-grid.layout-5:not(.focused-active) .video-container,
+    .video-grid.layout-6:not(.focused-active) .video-container {
         height: 100%;
         width: 100%;
         aspect-ratio: 1/1;
     }
 
     /* Seven, Eight & Nine participants: 3x3 grid */
-    .video-grid.layout-7,
-    .video-grid.layout-8,
-    .video-grid.layout-9 {
+    .video-grid.layout-7:not(.focused-active),
+    .video-grid.layout-8:not(.focused-active),
+    .video-grid.layout-9:not(.focused-active) {
         grid-template-columns: 1fr 1fr 1fr;
         grid-template-rows: 1fr 1fr 1fr;
     }
-    .video-grid.layout-7 .video-container,
-    .video-grid.layout-8 .video-container,
-    .video-grid.layout-9 .video-container {
+    .video-grid.layout-7:not(.focused-active) .video-container,
+    .video-grid.layout-8:not(.focused-active) .video-container,
+    .video-grid.layout-9:not(.focused-active) .video-container {
         height: 100%;
         width: 100%;
         aspect-ratio: 1/1;
