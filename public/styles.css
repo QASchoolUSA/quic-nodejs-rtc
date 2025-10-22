@@ -771,6 +771,17 @@ header h1 {
     white-space: nowrap;
 }
 
+/* In focused mode, pin controls to viewport bottom above safe area */
+.video-grid.focused-active ~ .overlay-controls {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    max-width: min(100vw - 24px, 900px);
+}
+
+
 /* Position variants */
 .overlay-bottom-center {
     bottom: 16px;
