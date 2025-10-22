@@ -18,30 +18,13 @@
         </div>
 
         <!-- Video Grid -->
-        <div class="video-grid" ref="videoGrid" :class="{ 'focused-active': focusedPeerId, 'facetime-active': facetimeActive }">
+        <div class="video-grid" ref="videoGrid" :class="{ 'focused-active': focusedPeerId }">
 
-            <!-- Local video container (can be primary or PiP) -->
             <div 
-                 :class="[
-                   'video-container local-video',
-                   aspectClasses['local'],
-                   { 
-                     'primary': facetimeActive && primaryPeerId === 'local',
-                     'pip': facetimeActive && secondaryPeerId === 'local',
-                     'pip-top-right': facetimeActive && secondaryPeerId === 'local' && pipCorner === 'top-right',
-                     'pip-top-left': facetimeActive && secondaryPeerId === 'local' && pipCorner === 'top-left',
-                     'pip-bottom-right': facetimeActive && secondaryPeerId === 'local' && pipCorner === 'bottom-right',
-                     'pip-bottom-left': facetimeActive && secondaryPeerId === 'local' && pipCorner === 'bottom-left',
-                     'pip-custom': facetimeActive && secondaryPeerId === 'local' && pipCorner === 'custom',
-                     'focused': focusedPeerId === 'local',
-                     'hidden': facetimeActive && primaryPeerId !== 'local' && secondaryPeerId !== 'local' ? true : (focusedPeerId && focusedPeerId !== 'local')
-                   }
-                 ]"
-                 :style="pipStyle('local')"
+                 :class="['video-container local-video', aspectClasses['local'], { 'focused': focusedPeerId === 'local', 'hidden': focusedPeerId && focusedPeerId !== 'local' }]"
                  ref="localContainer"
-                 @dblclick="facetimeActive ? swapPrimaryAndSecondary() : onTileDoubleClick('local')"
-                 @click="onTileTap('local')"
-                 @pointerdown="facetimeActive && secondaryPeerId === 'local' ? onPipPointerDown('local', $event) : null">
+                 @dblclick="onTileDoubleClick('local')"
+                 @click="onTileTap('local')">
                 <video 
                     ref="localVideo" 
                     autoplay 
@@ -49,32 +32,16 @@
                     playsinline
                     preload="none"
                 ></video>
+                
             </div>
-
-            <!-- Remote videos -->
+            <!-- Remote videos will be added dynamically -->
             <div 
                 v-for="peer in remotePeers" 
                 :key="peer.id" 
-                :class="[
-                  'video-container remote-video',
-                  aspectClasses[peer.id],
-                  { 
-                    'primary': facetimeActive && primaryPeerId === peer.id,
-                    'pip': facetimeActive && secondaryPeerId === peer.id,
-                    'pip-top-right': facetimeActive && secondaryPeerId === peer.id && pipCorner === 'top-right',
-                    'pip-top-left': facetimeActive && secondaryPeerId === peer.id && pipCorner === 'top-left',
-                    'pip-bottom-right': facetimeActive && secondaryPeerId === peer.id && pipCorner === 'bottom-right',
-                    'pip-bottom-left': facetimeActive && secondaryPeerId === peer.id && pipCorner === 'bottom-left',
-                    'pip-custom': facetimeActive && secondaryPeerId === peer.id && pipCorner === 'custom',
-                    'focused': focusedPeerId === peer.id,
-                    'hidden': facetimeActive && primaryPeerId !== peer.id && secondaryPeerId !== peer.id ? true : (focusedPeerId && focusedPeerId !== peer.id)
-                  }
-                ]"
-                :style="pipStyle(peer.id)"
+                :class="['video-container remote-video', aspectClasses[peer.id], { 'focused': focusedPeerId === peer.id, 'hidden': focusedPeerId && focusedPeerId !== peer.id }]"
                 :ref="`remoteContainer-${peer.id}`"
-                @dblclick="facetimeActive ? swapPrimaryAndSecondary() : onTileDoubleClick(peer.id)"
-                @click="onTileTap(peer.id)"
-                @pointerdown="facetimeActive && secondaryPeerId === peer.id ? onPipPointerDown(peer.id, $event) : null">
+                @dblclick="onTileDoubleClick(peer.id)"
+                @click="onTileTap(peer.id)">
                 <video 
                     :ref="`remoteVideo-${peer.id}`"
                     autoplay 
@@ -248,31 +215,6 @@
             >
                 <svg class="tile-view-icon" viewBox="0 0 24 24">
                     <path d="M4 4h6v6H4V4zm0 10h6v6H4v-6zM14 4h6v6h-6V4zm0 10h6v6h-6v-6z"/>
-                </svg>
-            </button>
-
-            <!-- FaceTime Controls -->
-            <button 
-                @click="toggleFaceTime" 
-                :class="['control-btn', 'main-btn', facetimeActive ? 'facetime-on' : 'facetime-off']" 
-                title="Toggle FaceTime Layout"
-            >
-                <svg v-if="!facetimeActive" class="facetime-icon" viewBox="0 0 24 24">
-                    <path d="M4 6h10v8H4zM16 8l4-2v8l-4-2z"/>
-                </svg>
-                <svg v-else class="pip-icon" viewBox="0 0 24 24">
-                    <path d="M3 5h18v14H3V5zm10 7H5v6h8v-6z"/>
-                </svg>
-            </button>
-
-            <button 
-                v-if="facetimeActive && primaryPeerId" 
-                @click="swapPrimaryAndSecondary" 
-                class="control-btn secondary-btn swap-btn" 
-                title="Swap Feeds"
-            >
-                <svg class="swap-icon" viewBox="0 0 24 24">
-                    <path d="M7 7h10v2H7V7zm0 8h10v2H7v-2zM8 12l-4 4V8l4 4zm8 0l4-4v8l-4-4z"/>
                 </svg>
             </button>
 
