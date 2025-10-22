@@ -3,23 +3,13 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            username: '',
             roomId: '',
             isLoading: false,
-            message: {
-                text: '',
-                type: ''
-            }
+            message: { text: '', type: '' }
         };
     },
     mounted() {
-        // Load saved username from localStorage
-        const savedUsername = localStorage.getItem('quic-rtc-username');
-        if (savedUsername) {
-            this.username = savedUsername;
-        }
-
-        // Check for room ID in URL parameters
+        // Pre-fill room ID from legacy URL param for backward compatibility
         const urlParams = new URLSearchParams(window.location.search);
         const roomFromUrl = urlParams.get('room');
         if (roomFromUrl) {
@@ -27,70 +17,64 @@ createApp({
         }
     },
     methods: {
+        validateRoomId(id) {
+            return typeof id === 'string' && /^[A-Za-z0-9_-]{3,32}$/.test(id);
+        },
+
         async createRoom() {
-            if (!this.username.trim()) {
-                this.showMessage('Please enter your name', 'error');
+            const id = this.roomId.trim();
+            if (!this.validateRoomId(id)) {
+                this.showMessage('Invalid Room ID. Use 3-32 chars: letters, numbers, - and _.', 'error');
                 return;
             }
 
             this.isLoading = true;
-            this.saveUsername();
-
             try {
                 const response = await fetch('/api/create-room', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username: this.username.trim() })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: id })
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.message || `HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
-                
                 if (data.success) {
-                    this.showMessage('Room created successfully! Redirecting...', 'success');
+                    this.showMessage('Room created! Redirecting…', 'success');
                     setTimeout(() => {
-                        window.location.href = `room.html?room=${data.roomId}&username=${encodeURIComponent(this.username.trim())}&creator=true`;
-                    }, 1000);
+                        window.location.href = `/room/${id}`;
+                    }, 500);
                 } else {
                     throw new Error(data.message || 'Failed to create room');
                 }
             } catch (error) {
                 console.error('Error creating room:', error);
-                this.showMessage('Failed to create room. Please try again.', 'error');
+                this.showMessage(error.message || 'Failed to create room. Please try again.', 'error');
             } finally {
                 this.isLoading = false;
             }
         },
 
         joinRoom() {
-            if (!this.username.trim()) {
-                this.showMessage('Please enter your name', 'error');
+            const id = this.roomId.trim();
+            if (!this.validateRoomId(id)) {
+                this.showMessage('Invalid Room ID. Use 3-32 chars: letters, numbers, - and _.', 'error');
                 return;
             }
-
-            if (!this.roomId.trim()) {
-                this.showMessage('Please enter a room ID', 'error');
-                return;
-            }
-
-            this.saveUsername();
-            this.showMessage('Joining room...', 'success');
-            
+            this.showMessage('Joining room…', 'success');
             setTimeout(() => {
-                window.location.href = `room.html?room=${this.roomId.trim()}&username=${encodeURIComponent(this.username.trim())}`;
-            }, 500);
+                window.location.href = `/room/${id}`;
+            }, 300);
         },
 
         handleEnterKey() {
             if (this.roomId.trim()) {
                 this.joinRoom();
             } else {
-                this.createRoom();
+                this.showMessage('Enter a Room ID', 'error');
             }
         },
 
@@ -98,21 +82,13 @@ createApp({
             if (this.roomId.trim()) {
                 this.joinRoom();
             } else {
-                this.createRoom();
+                this.showMessage('Enter a Room ID', 'error');
             }
-        },
-
-        saveUsername() {
-            localStorage.setItem('quic-rtc-username', this.username.trim());
         },
 
         showMessage(text, type) {
             this.message = { text, type };
-            
-            // Clear message after 5 seconds
-            setTimeout(() => {
-                this.message = { text: '', type: '' };
-            }, 5000);
+            setTimeout(() => { this.message = { text: '', type: '' }; }, 5000);
         }
     }
 }).mount('#app');

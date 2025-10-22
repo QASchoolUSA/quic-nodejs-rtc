@@ -50,34 +50,26 @@ createApp({
                     this.setAppHeight();
                     window.addEventListener('resize', this.setAppHeight);
 
-                    // Get room ID and username from URL parameters
+                    // New: read room ID from path; fallback to legacy ?room=
                     const urlParams = new URLSearchParams(window.location.search);
-                    this.roomId = urlParams.get('room') || 'default-room';
-                    this.localUserName = localStorage.getItem('username') || 'Anonymous';
-        
-                    try {
-                        // Initialize WebRTC and get media permissions
-                        await this.initWebRTC();
-                        
-                        // Get available devices now that permissions are granted
-                        await this.getAvailableDevices();
+                    const pathMatch = window.location.pathname.match(/\/room\/([^/?#]+)/);
+                    this.roomId = (pathMatch && decodeURIComponent(pathMatch[1])) || urlParams.get('room') || 'default-room';
 
-                        // Listen for devices being added/removed (e.g., connecting AirPods)
+                    // Username no longer passed via URL; fallback to local storage or Anonymous
+                    const nameFromStorage = localStorage.getItem('quic-rtc-username') || localStorage.getItem('username');
+                    this.localUserName = nameFromStorage || 'Anonymous';
+
+                    try {
+                        await this.initWebRTC();
+                        await this.getAvailableDevices();
                         if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
                             navigator.mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
                         }
-                        
-                        // Join the room
                         this.joinRoom();
-                        
-                        // Set up other event listeners
                         this.setupEventListeners();
-        
                     } catch (error) {
-                        // initWebRTC will have already set the error message
                         console.error("Initialization failed:", error);
                     } finally {
-                        // Mark initialization as complete
                         this.isInitializing = false;
                     }
                 },
@@ -85,25 +77,19 @@ createApp({
                 // Join room
                 joinRoom() {
                     if (this.webrtcClient) {
-                        // Check if this is a room creator (first person to join)
-                        const urlParams = new URLSearchParams(window.location.search);
-                        this.isRoomCreator = urlParams.get('creator') === 'true';
-                        
-                        // Start a brief grace period to avoid flashing error overlays
+                        // Remove creator flag driven by URL; server tracks the first joiner
+                        this.isRoomCreator = false;
                         this.isJoining = true;
                         if (this.joinGraceTimeoutId) clearTimeout(this.joinGraceTimeoutId);
                         this.joinGraceTimeoutId = setTimeout(() => {
                             this.isJoining = false;
                             this.joinGraceTimeoutId = null;
                         }, 4000);
-                        
+
                         this.webrtcClient.joinRoom(this.roomId, { 
                             name: this.localUserName,
                             isCreator: this.isRoomCreator 
                         });
-
-                        // Removed auto-copy; use explicit user action to copy link
-                        // this.copyRoomLink();
                     }
                 },
         
@@ -157,12 +143,12 @@ createApp({
                     
                     // Set up event listeners for WebRTC events
                     this.webrtcClient.on('remoteStream', (data) => {
-                        console.log('Remote stream received:', data);
+                        
                         this.addRemotePeer(data.userId, data.stream, data.username || 'Participant');
                     });
                     
                     this.webrtcClient.on('localStream', (stream) => {
-                        console.log('Local stream received:', stream);
+                        
                         this.$nextTick(() => {
                             const localVideo = this.$refs.localVideo;
                             if (localVideo) {
@@ -172,7 +158,7 @@ createApp({
                     });
                     
                     this.webrtcClient.on('localStreamUpdated', (stream) => {
-                        console.log('Local stream updated:', stream);
+                        
                         this.$nextTick(() => {
                             const localVideo = this.$refs.localVideo;
                             if (localVideo) {
@@ -182,17 +168,17 @@ createApp({
                     });
                     
                     this.webrtcClient.on('peerRemoved', (userId) => {
-                        console.log('Peer removed:', userId);
+                        
                         this.removeRemotePeer(userId);
                     });
                     
                     this.webrtcClient.on('participantJoined', (data) => {
-                        console.log('Participant joined:', data);
+                        
                         this.participantCount = data.participantCount || this.participantCount + 1;
                     });
                     
                                 this.webrtcClient.on('participantLeft', (data) => {
-                                    console.log('Participant left:', data);
+                                    
                                     this.participantCount = Math.max(1, this.participantCount - 1);
                                 });
                     
@@ -205,7 +191,7 @@ createApp({
                                 });                    
                     // Initialize WebRTC and return the promise
                     return this.webrtcClient.init().then(() => {
-                        console.log('WebRTC client initialized');
+                        
                         // Set transport type label based on runtime capability/use
                                 this.showConnectionStatus('Connected to server', 'success');
                     }).catch(error => {
@@ -266,8 +252,8 @@ createApp({
                         this.availableCameras = devices.filter(device => device.kind === 'videoinput');
                         this.availableMics = devices.filter(device => device.kind === 'audioinput');
                         
-                        console.log('Available cameras:', this.availableCameras.map(cam => ({ id: cam.deviceId, label: cam.label })));
-                        console.log('Available microphones:', this.availableMics.map(mic => ({ id: mic.deviceId, label: mic.label })));
+                        
+                        
         
                         if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
                             this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
@@ -285,7 +271,7 @@ createApp({
 
                 async handleDeviceChange() {
                     try {
-                        console.log('Media devices changed — re-enumerating...');
+                        
                         await this.getAvailableDevices();
                         
                         // Keep current mic selection if still present
@@ -351,7 +337,7 @@ createApp({
                 this.currentCameraIndex = cameraIndex;
                 const selectedCamera = this.availableCameras[cameraIndex];
                 
-                console.log('Switching to camera:', selectedCamera.label || `Camera ${cameraIndex + 1}`, 'Device ID:', selectedCamera.deviceId);
+                
                 
                 // Switch camera in WebRTC client
                 if (this.webrtcClient) {
@@ -379,7 +365,7 @@ createApp({
                 this.currentMicIndex = micIndex;
                 const selectedMic = this.availableMics[micIndex];
                 
-                console.log('Switching to microphone:', selectedMic.label || `Microphone ${micIndex + 1}`, 'Device ID:', selectedMic.deviceId);
+                
                 
                 // Switch microphone in WebRTC client
                 if (this.webrtcClient) {
@@ -398,10 +384,9 @@ createApp({
         },
 
         async switchCamera() {
-            console.log('Switch camera called, available cameras:', this.availableCameras.length);
+            
             
             if (this.availableCameras.length <= 1) {
-                console.log('Not enough cameras to switch');
                 this.showConnectionStatus('No additional cameras available', 'error');
                 return;
             }
@@ -410,8 +395,6 @@ createApp({
                 // Cycle to next camera
                 this.currentCameraIndex = (this.currentCameraIndex + 1) % this.availableCameras.length;
                 const selectedCamera = this.availableCameras[this.currentCameraIndex];
-                
-                console.log('Switching to camera:', selectedCamera.label || `Camera ${this.currentCameraIndex + 1}`, 'Device ID:', selectedCamera.deviceId);
                 
                 // Switch camera in WebRTC client
                 if (this.webrtcClient) {
@@ -463,7 +446,6 @@ createApp({
                 const videoElement = this.$refs[`remoteVideo-${peerId}`];
                 if (videoElement && videoElement[0]) {
                     videoElement[0].srcObject = stream;
-                    console.log(`Video stream assigned to remote video element for peer ${peerId}`);
                 } else {
                     console.warn(`Could not find video element for peer ${peerId}`);
                 }
@@ -500,43 +482,12 @@ createApp({
         },
         
         // Utility functions
-        async copyRoomLink() {
-            const roomLink = `${window.location.origin}/room.html?room=${this.roomId}`;
-            try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(roomLink);
-                    this.showConnectionStatus('Room link copied to clipboard!', 'success');
-                } else {
-                    // Fallback: try execCommand copy (may require user gesture)
-                    const textarea = document.createElement('textarea');
-                    textarea.value = roomLink;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.focus();
-                    textarea.select();
-                    const ok = document.execCommand && document.execCommand('copy');
-                    document.body.removeChild(textarea);
-
-                    if (ok) {
-                        this.showConnectionStatus('Room link copied to clipboard!', 'success');
-                    } else {
-                        // Do not show an error overlay here; just a gentle prompt
-                        this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to copy room link:', error);
-                // Avoid flashing error overlay for non-critical copy failures
-                this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
-            }
-        },
         
         hangUp() {
             if (this.webrtcClient) {
                 this.webrtcClient.leaveRoom();
             }
-            window.location.href = 'index.html';
+            window.location.href = '/';
         },
         
         showConnectionStatus(message, type) {

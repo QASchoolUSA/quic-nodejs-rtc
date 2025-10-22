@@ -9,6 +9,11 @@ const CryptoUtils = require('./crypto-utils');
 const WebTransportServer = require('./webtransport-server');
 require('dotenv').config();
 
+const ROOM_ID_REGEX = /^[A-Za-z0-9_-]{3,32}$/;
+function isValidRoomId(id) {
+  return typeof id === 'string' && ROOM_ID_REGEX.test(id);
+}
+
 const app = express();
 
 // Create HTTP server (Render handles HTTPS automatically)
@@ -53,17 +58,6 @@ const io = socketIo(server, {
     transports: ['websocket', 'polling']
 });
 
-// Fallback HTTP Socket.IO for development
-// Remove the httpIo initialization since we only have one server now
-// const httpIo = socketIo(httpServer, {
-//     cors: {
-//         origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-//         methods: ["GET", "POST"],
-//         credentials: true
-//     },
-//     transports: ['websocket', 'polling']
-// });
-
 // Store active rooms and participants with encryption keys
 const rooms = new Map();
 const users = new Map();
@@ -81,12 +75,12 @@ class Room {
     this.salt = cryptoUtils.generateSalt();
   }
 
-  addParticipant(socketId, userData) {
+  addParticipant(socketId, userData, keyPair) {
     this.participants.set(socketId, {
       id: socketId,
       ...userData,
       joinedAt: new Date(),
-      keyPair: cryptoUtils.generateKeyPair() // Generate key pair for each participant
+      keyPair // Provided key pair (JWK)
     });
   }
 
@@ -125,32 +119,33 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // Join room
-  socket.on('join-room', (data) => {
-    const { roomId, userData, isCreator } = data;
-    
-    if (!roomId) {
-      socket.emit('error', { message: 'Room ID is required' });
+  socket.on('join-room', async (data) => {
+    const { roomId, userData } = data;
+    if (!roomId || !isValidRoomId(roomId)) {
+      socket.emit('error', { message: 'Invalid room ID. Use 3-32 chars: letters, numbers, - and _.' });
       return;
     }
-
-    // Create room if it doesn't exist
+    
     if (!rooms.has(roomId)) {
       rooms.set(roomId, new Room(roomId, socket.id));
     }
 
     const room = rooms.get(roomId);
-    room.addParticipant(socket.id, userData);
+
+    // Generate participant key pair (P-256 JWK)
+    const keyPair = await cryptoUtils.generateKeyPair();
+
+    room.addParticipant(socket.id, userData, keyPair);
     users.set(socket.id, { roomId, userData });
 
     socket.join(roomId);
 
     // Send room encryption keys to the new participant
-    const participantKeyPair = room.getParticipantKeyPair(socket.id);
     socket.emit('room-keys', {
       roomKeys: room.getRoomKeys(),
       yourKeyPair: {
-        publicKey: participantKeyPair.publicKey,
-        privateKey: participantKeyPair.privateKey
+        publicKey: keyPair.publicKey,
+        privateKey: keyPair.privateKey
       }
     });
 
@@ -357,17 +352,23 @@ app.post('/api/rooms', (req, res) => {
 
 // Alternative endpoint for create-room (used by Vue.js frontend)
 app.post('/api/create-room', (req, res) => {
-  const { username } = req.body;
-  const roomId = uuidv4();
-  const room = new Room(roomId);
-  rooms.set(roomId, room);
-  
-  res.json({
-    success: true,
-    roomId,
-    createdAt: room.createdAt,
-    message: 'Room created successfully'
-  });
+  const { roomId } = req.body || {};
+  if (roomId != null) {
+    if (!isValidRoomId(roomId)) {
+      return res.status(400).json({ success: false, message: 'Invalid room ID. Use 3-32 chars: letters, numbers, - and _.' });
+    }
+    if (rooms.has(roomId)) {
+      return res.status(409).json({ success: false, message: 'Room ID already exists. Choose a different ID.' });
+    }
+    const room = new Room(roomId);
+    rooms.set(roomId, room);
+    return res.json({ success: true, roomId, createdAt: room.createdAt, message: 'Room created successfully' });
+  }
+  // Backward compatibility: create with random ID if not provided
+  const randomId = uuidv4();
+  const room = new Room(randomId);
+  rooms.set(randomId, room);
+  return res.json({ success: true, roomId: randomId, createdAt: room.createdAt, message: 'Room created successfully' });
 });
 
 // Serve the main page
@@ -375,6 +376,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve room page without .html extension
+app.get('/room', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'room.html'));
+});
+
+// Serve room page with ID param for nicer URLs
 app.get('/room/:roomId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'room.html'));
 });

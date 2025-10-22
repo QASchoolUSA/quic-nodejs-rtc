@@ -49,7 +49,7 @@ A modern video conferencing application built with WebRTC and WebTransport (QUIC
    ```bash
    npm start
    ```
-2. Open your browser and navigate to `https://localhost:3000` to see the application in action.
+2. Open your browser and navigate to `https://localhost:3443` to use the application over HTTPS.
 
 
 ## 🔐 Security Features
@@ -68,14 +68,14 @@ A modern video conferencing application built with WebRTC and WebTransport (QUIC
 ## 📱 Usage Instructions
 
 ### Creating a Room
-1. Enter your username
-2. Click "Create New Room"
-3. Share the room ID with participants
+1. Enter a Room ID (3–32 chars: letters, numbers, -, _)
+2. Click "Create New Meeting" or "Join Meeting"
+3. Share the room URL `/room/<ROOM_ID>` with participants
 
 ### Joining a Room
-1. Enter your username
-2. Enter the room ID
-3. Click "Join Room"
+1. Enter the Room ID
+2. Click "Join Meeting" to navigate to `/room/<ROOM_ID>`
+3. Alternatively, paste the URL `/room/<ROOM_ID>` directly in the browser
 
 ### During a Call
 - **Microphone**: Toggle with the mic button
@@ -83,6 +83,16 @@ A modern video conferencing application built with WebRTC and WebTransport (QUIC
 - **Screen Share**: Click the screen share button
 - **Chat**: Use the chat panel for encrypted messaging
 - **Leave**: Click the hang up button to exit
+
+### URL Scheme
+- Rooms are accessible at `/room/<ROOM_ID>`
+- The homepage provides a single Room ID field to create or join
+- Legacy query `?room=<ROOM_ID>` is still accepted to prefill the form
+
+### Cleanup Notes
+- Removed clipboard auto-copy functionality from room page
+- Deleted unused legacy scripts: `public/app.js`, `public/room.js`
+- Pruned non-essential debug logs from `public/room-vue.js` and `public/webrtc-client.js`
 
 ## 🧪 Testing
 

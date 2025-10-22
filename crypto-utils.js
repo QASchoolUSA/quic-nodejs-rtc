@@ -71,21 +71,27 @@ class CryptoUtils {
     }
 
     /**
-     * Generate ECDH key pair for key exchange
-     * @returns {Object} Key pair with public and private keys
+     * Generate ECDH key pair for key exchange (P-256 JWK)
+     * @returns {Promise<Object>} Key pair with public and private keys in JWK
      */
-    generateKeyPair() {
-        return crypto.generateKeyPairSync('ec', {
-            namedCurve: 'secp256k1',
-            publicKeyEncoding: {
-                type: 'spki',
-                format: 'pem'
+    async generateKeyPair() {
+        const { webcrypto } = crypto;
+        const keyPair = await webcrypto.subtle.generateKey(
+            {
+                name: 'ECDH',
+                namedCurve: 'P-256'
             },
-            privateKeyEncoding: {
-                type: 'pkcs8',
-                format: 'pem'
-            }
-        });
+            true,
+            ['deriveKey']
+        );
+
+        const publicJwk = await webcrypto.subtle.exportKey('jwk', keyPair.publicKey);
+        const privateJwk = await webcrypto.subtle.exportKey('jwk', keyPair.privateKey);
+
+        return {
+            publicKey: publicJwk,
+            privateKey: privateJwk
+        };
     }
 
     /**

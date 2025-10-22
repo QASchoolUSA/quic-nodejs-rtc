@@ -72,9 +72,8 @@ class WebRTCClient {
             if (typeof WebTransport !== 'undefined') {
                 this.webTransportClient = new WebTransportClient();
                 this.useWebTransport = true;
-                console.log('WebTransport (QUIC) support detected');
             } else {
-                console.log('WebTransport not supported, using WebRTC Data Channels');
+                // Fallback to WebRTC Data Channels
             }
             
             // Initialize Socket.IO connection
@@ -94,13 +93,11 @@ class WebRTCClient {
     setupSocketHandlers() {
         // User joined room
         this.socket.on('user-joined', (data) => {
-            console.log('User joined:', data);
             this.createPeerConnection(data.userId, true);
         });
 
         // Existing participants
         this.socket.on('existing-participants', (participants) => {
-            console.log('Existing participants:', participants);
             participants.forEach(participant => {
                 this.createPeerConnection(participant.id, false);
             });
@@ -156,20 +153,16 @@ class WebRTCClient {
                     privateKey: yourKeyPair.privateKey // Keep as string for now
                 };
                 
-                console.log('🔐 Room encryption keys received and imported');
+
             } catch (error) {
                 console.error('Failed to setup encryption keys:', error);
             }
         });
 
         // Connection events
-        this.socket.on('connect', () => {
-            console.log('Connected to signaling server');
-        });
+        this.socket.on('connect', () => {});
 
-        this.socket.on('disconnect', () => {
-            console.log('Disconnected from signaling server');
-        });
+        this.socket.on('disconnect', () => {});
 
         this.socket.on('error', (error) => {
             console.error('Socket error:', error);
@@ -227,8 +220,6 @@ class WebRTCClient {
             // Emit local stream event for Vue.js
             this.emit('localStream', this.localStream);
 
-            console.log('Got user media successfully (audio and video)');
-
             return this.localStream;
         } catch (error) {
             console.error('Error accessing media devices:', error);
@@ -273,7 +264,6 @@ class WebRTCClient {
 
             // Handle remote stream
             peerConnection.ontrack = (event) => {
-                console.log('Received remote track:', event);
                 const stream = event.streams[0];
                 
                 // Optimize remote video tracks
@@ -298,10 +288,7 @@ class WebRTCClient {
 
             // Handle connection state changes
             peerConnection.onconnectionstatechange = () => {
-                console.log(`Connection state with ${userId}:`, peerConnection.connectionState);
-                
                 if (peerConnection.connectionState === 'failed') {
-                    console.log('Connection failed, attempting to restart ICE');
                     peerConnection.restartIce();
                 }
             };
@@ -317,7 +304,7 @@ class WebRTCClient {
                 this.createOffer(userId);
             }
 
-            console.log(`Created peer connection for user ${userId}`);
+
             
         } catch (error) {
             console.error('Error creating peer connection:', error);
@@ -326,8 +313,6 @@ class WebRTCClient {
 
     setupDataChannel(dataChannel, userId) {
         dataChannel.onopen = () => {
-            console.log(`Data channel opened with ${userId}`);
-            
             // Update peer data channel reference
             const peer = this.peers.get(userId);
             if (peer) {
@@ -348,9 +333,7 @@ class WebRTCClient {
             console.error(`Data channel error with ${userId}:`, error);
         };
 
-        dataChannel.onclose = () => {
-            console.log(`Data channel closed with ${userId}`);
-        };
+        dataChannel.onclose = () => {};
     }
 
     async createOffer(userId) {
@@ -433,7 +416,6 @@ class WebRTCClient {
     handleRemoteStream(userId, stream) {
         // Emit remote stream event for Vue.js
         this.emit('remoteStream', { userId, stream });
-        console.log(`Added remote video for user ${userId}`);
     }
 
     removePeer(userId) {
@@ -453,8 +435,6 @@ class WebRTCClient {
 
         // Emit peer removal event for Vue.js
         this.emit('peerRemoved', userId);
-
-        console.log(`Removed peer ${userId}`);
     }
 
     // Media control methods
@@ -479,7 +459,7 @@ class WebRTCClient {
     // Camera switching
     async switchCamera(deviceId) {
         try {
-            console.log('WebRTC switchCamera called with deviceId:', deviceId);
+
             // Store the new camera device ID
             this.currentCameraDeviceId = deviceId;
             // Stop current video track
@@ -487,7 +467,6 @@ class WebRTCClient {
                 const videoTrack = this.localStream.getVideoTracks()[0];
                 if (videoTrack) {
                     videoTrack.stop();
-                    console.log('Stopped current video track');
                 }
             }
             // Get new stream with selected camera
@@ -495,7 +474,7 @@ class WebRTCClient {
                 audio: this.isAudioEnabled,
                 video: { deviceId: { exact: deviceId } }
             };
-            console.log('Getting new stream with constraints:', constraints);
+
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
             const newVideoTrack = newStream.getVideoTracks()[0];
             const newAudioTrack = newStream.getAudioTracks()[0];
@@ -512,7 +491,7 @@ class WebRTCClient {
             } else {
                 this.localStream = newStream;
             }
-            console.log('Updated local stream with new video track');
+
             this.emit('localStreamUpdated', this.localStream);
             const replacePromises = [];
             this.peers.forEach((peer) => {
@@ -524,7 +503,6 @@ class WebRTCClient {
                 }
             });
             await Promise.all(replacePromises);
-            console.log('Camera switched successfully for all peer connections');
             return true;
         } catch (error) {
             console.error('Error switching camera:', error);
@@ -535,7 +513,6 @@ class WebRTCClient {
     // Microphone switching
     async switchMicrophone(deviceId) {
         try {
-            console.log('WebRTC switchMicrophone called with deviceId:', deviceId);
             this.currentMicDeviceId = deviceId;
             const prevEnabled = this.isAudioEnabled;
             // Stop current audio track
@@ -543,7 +520,6 @@ class WebRTCClient {
                 const audioTrack = this.localStream.getAudioTracks()[0];
                 if (audioTrack) {
                     audioTrack.stop();
-                    console.log('Stopped current audio track');
                 }
             }
             // Get new audio stream with selected microphone
@@ -580,7 +556,6 @@ class WebRTCClient {
                 }
             });
             await Promise.all(replacePromises);
-            console.log('Microphone switched successfully for all peer connections');
             return true;
         } catch (error) {
             console.error('Error switching microphone:', error);
@@ -611,7 +586,7 @@ class WebRTCClient {
 
 
     handleDataChannelMessage(userId, data) {
-        console.log('Unknown data channel message type:', data.type);
+        // Unknown data channel message type; no-op
     }
 
     handleRemoteMediaStateChange(data) {
@@ -685,8 +660,6 @@ class WebRTCClient {
     optimizeVideoPerformance(peerConnection) {
         // Set up connection state monitoring for performance
         peerConnection.onconnectionstatechange = () => {
-            console.log(`Connection state: ${peerConnection.connectionState}`);
-            
             if (peerConnection.connectionState === 'connected') {
                 // Connection is stable, we can optimize further
                 this.optimizeConnectionForVideo(peerConnection);
@@ -694,9 +667,7 @@ class WebRTCClient {
         };
 
         // Monitor ICE connection state
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log(`ICE connection state: ${peerConnection.iceConnectionState}`);
-        };
+        peerConnection.oniceconnectionstatechange = () => {};
     }
 
     optimizeVideoTrack(track) {
@@ -751,7 +722,6 @@ class WebRTCClient {
                 videoTrack.enabled = enable;
                 this.isVideoEnabled = enable;
                 this.emit('videoToggled', this.isVideoEnabled);
-                console.log(`Video ${enable ? 'enabled' : 'disabled'} by remote control`);
             }
         } else if (type === 'audio') {
             const audioTrack = this.localStream?.getAudioTracks()[0];
@@ -759,7 +729,6 @@ class WebRTCClient {
                 audioTrack.enabled = enable;
                 this.isAudioEnabled = enable;
                 this.emit('audioToggled', this.isAudioEnabled);
-                console.log(`Audio ${enable ? 'enabled' : 'disabled'} by remote control`);
             }
         }
     }
@@ -773,5 +742,4 @@ class WebRTCClient {
     }
 }
 
-// Export for use in room.js
 window.WebRTCClient = WebRTCClient;

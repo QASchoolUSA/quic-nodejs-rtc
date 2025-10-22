@@ -28,7 +28,7 @@ class WebTransportClient {
                 this.isConnected = true;
                 this.useWebTransport = true;
                 
-                console.log('WebTransport (QUIC) connected successfully');
+                
                 this.setupWebTransport();
                 this.emit('connected');
                 return true;
@@ -46,7 +46,7 @@ class WebTransportClient {
                 
                 this.ws.onopen = () => {
                     this.isConnected = true;
-                    console.log('WebTransport (WebSocket fallback) connected successfully');
+                    
                     this.emit('connected');
                 };
                 
