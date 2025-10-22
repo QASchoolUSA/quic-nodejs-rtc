@@ -41,16 +41,25 @@ createApp({
             // WebRTC client
             webrtcClient: null,
 
-            // Focused view state
+            // FaceTime-like layout state
+            facetimeActive: false,
+            primaryPeerId: null, // who is full-screen (prefer first remote)
+            secondaryPeerId: 'local', // PiP defaults to local
+            pipCorner: 'top-right', // default PiP corner
+            pipCustomPosition: { left: null, top: null }, // for drag reposition
+            pipDrag: { active: false, peerId: null, offsetX: 0, offsetY: 0, width: 0, height: 0 },
+
+            // UI overlays and aspect tracking
+            aspectClasses: { local: '' },
+            showErrorOverlay: false,
+            overlayPosition: 'overlay-bottom-right',
+            chatVisible: false,
+            unreadMessages: 0,
             focusedPeerId: null,
             lastTapTs: 0,
             doubleTapThreshold: 300,
-            fullscreenPeerId: null,
-            isRoomCreator: false,
             showRemoteControls: false,
-            overlayPosition: 'overlay-bottom-center',
-            // Aspect ratio classes for focused sizing
-            aspectClasses: {},
+            isRoomCreator: false,
         };
     },
                 async mounted() {
@@ -76,17 +85,22 @@ createApp({
 
                     try {
                         await this.initWebRTC();
-                        await this.getAvailableDevices();
-                        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-                            navigator.mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
+                        if (navigator.mediaDevices) {
+                            await this.getAvailableDevices();
+                            if (navigator.mediaDevices.addEventListener) {
+                                navigator.mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
+                            }
                         }
                         this.joinRoom();
-                        this.setupEventListeners();
                     } catch (error) {
                         console.error("Initialization failed:", error);
+                        // Keep UI usable in preview environments without MediaDevices
+                        this.showConnectionStatus('Preview mode: limited functionality without media devices.', 'warning');
                     } finally {
                         // Keep loading state until network status is confirmed
                         // this.isInitializing will be set to false in onNetworkStatus when online
+                        // Always bind UI listeners
+                        this.setupEventListeners();
                     }
                 },
             methods: {
@@ -126,7 +140,9 @@ createApp({
                     if (missingAPIs.length > 0) {
                         // Keep message minimal during preflight; actual init will surface detailed errors
                         console.warn('Missing required APIs:', missingAPIs.join(', '));
-                        return false;
+                        // Do not block initialization in dev; show a soft warning instead
+                        this.showConnectionStatus('Some features may be limited (missing APIs).', 'warning');
+                        return true;
                     }
                     
                     // Consider secure contexts and common local IPs as acceptable for dev
@@ -271,6 +287,10 @@ createApp({
                             this.showMicDropdown = false;
                         }
                     });
+
+                    // Global pointer handlers for PiP drag
+                    window.addEventListener('pointermove', this.onPipPointerMove);
+                    window.addEventListener('pointerup', this.onPipPointerUp);
                 },
                 
                 // Media controls
@@ -482,6 +502,11 @@ createApp({
             
             // Update video grid layout class for better browser compatibility
             this.updateVideoGridLayout();
+
+            // Set FaceTime primary to first remote if active and unset
+            if (this.facetimeActive && !this.primaryPeerId) {
+                this.primaryPeerId = peerId;
+            }
             
             this.$nextTick(() => {
                 const videoElement = this.$refs[`remoteVideo-${peerId}`];
@@ -678,6 +703,93 @@ createApp({
         exitFocused() {
             this.focusedPeerId = null;
         },
+
+        // FaceTime layout toggle
+        toggleFaceTime() {
+            this.facetimeActive = !this.facetimeActive;
+            if (this.facetimeActive) {
+                // Disable focused mode when FaceTime is active
+                this.focusedPeerId = null;
+                const firstRemote = this.remotePeers.length > 0 ? this.remotePeers[0].id : null;
+                this.primaryPeerId = firstRemote;
+                this.secondaryPeerId = 'local';
+                this.pipCorner = 'top-right';
+                this.pipCustomPosition = { left: null, top: null };
+                this.pipDrag.active = false;
+            } else {
+                this.primaryPeerId = null;
+                this.secondaryPeerId = 'local';
+                this.pipCorner = 'top-right';
+                this.pipCustomPosition = { left: null, top: null };
+                this.pipDrag.active = false;
+            }
+        },
+
+        // Swap primary and secondary feeds
+        swapPrimaryAndSecondary() {
+            if (!this.facetimeActive) return;
+            const prevPrimary = this.primaryPeerId;
+            const prevSecondary = this.secondaryPeerId;
+            this.primaryPeerId = prevSecondary;
+            this.secondaryPeerId = prevPrimary;
+            // Reset custom PiP position when swapping
+            this.pipCorner = 'top-right';
+            this.pipCustomPosition = { left: null, top: null };
+            this.pipDrag.active = false;
+        },
+
+        // Inline style for custom PiP position
+        pipStyle(peerId) {
+            if (!this.facetimeActive) return {};
+            if (this.secondaryPeerId !== peerId) return {};
+            if (this.pipCorner !== 'custom') return {};
+            const { left, top } = this.pipCustomPosition;
+            if (left == null || top == null) return {};
+            return { left: `${left}px`, top: `${top}px` };
+        },
+
+        // Start PiP drag
+        onPipPointerDown(peerId, event) {
+            if (!this.facetimeActive || this.secondaryPeerId !== peerId) return;
+            const el = event.currentTarget;
+            const rect = el.getBoundingClientRect();
+            // Ensure we enter custom mode
+            this.pipCorner = 'custom';
+            // Initialize custom position if first drag
+            if (this.pipCustomPosition.left == null || this.pipCustomPosition.top == null) {
+                this.pipCustomPosition.left = rect.left;
+                this.pipCustomPosition.top = rect.top;
+            }
+            this.pipDrag.active = true;
+            this.pipDrag.peerId = peerId;
+            this.pipDrag.width = rect.width;
+            this.pipDrag.height = rect.height;
+            this.pipDrag.offsetX = event.clientX - this.pipCustomPosition.left;
+            this.pipDrag.offsetY = event.clientY - this.pipCustomPosition.top;
+            try { el.setPointerCapture && el.setPointerCapture(event.pointerId); } catch (_) {}
+        },
+
+        // Move PiP while dragging
+        onPipPointerMove(event) {
+            if (!this.pipDrag.active) return;
+            const margin = 12;
+            const maxLeft = Math.max(0, window.innerWidth - this.pipDrag.width - margin);
+            const maxTop = Math.max(0, window.innerHeight - this.pipDrag.height - margin);
+            let newLeft = event.clientX - this.pipDrag.offsetX;
+            let newTop = event.clientY - this.pipDrag.offsetY;
+            newLeft = Math.min(Math.max(margin, newLeft), maxLeft);
+            newTop = Math.min(Math.max(margin, newTop), maxTop);
+            this.pipCustomPosition.left = newLeft;
+            this.pipCustomPosition.top = newTop;
+        },
+
+        // End PiP drag
+        onPipPointerUp(event) {
+            if (!this.pipDrag.active) return;
+            this.pipDrag.active = false;
+            this.pipDrag.peerId = null;
+            try { event.target.releasePointerCapture && event.target.releasePointerCapture(event.pointerId); } catch (_) {}
+        },
         
         toggleRemoteControls() {
             this.showRemoteControls = !this.showRemoteControls;
@@ -701,6 +813,8 @@ createApp({
         if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
             navigator.mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
         }
+        window.removeEventListener('pointermove', this.onPipPointerMove);
+        window.removeEventListener('pointerup', this.onPipPointerUp);
         if (this.webrtcClient) {
             this.webrtcClient.leaveRoom();
         }
