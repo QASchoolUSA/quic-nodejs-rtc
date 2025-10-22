@@ -64,6 +64,14 @@ createApp({
                     const nameFromStorage = localStorage.getItem('quic-rtc-username') || localStorage.getItem('username');
                     this.localUserName = nameFromStorage || 'Anonymous';
 
+                    // Start join grace immediately to cover early handshake transitions
+                    this.isJoining = true;
+                    if (this.joinGraceTimeoutId) clearTimeout(this.joinGraceTimeoutId);
+                    this.joinGraceTimeoutId = setTimeout(() => {
+                        this.isJoining = false;
+                        this.joinGraceTimeoutId = null;
+                    }, 4000);
+
                     try {
                         await this.initWebRTC();
                         await this.getAvailableDevices();

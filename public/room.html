@@ -53,7 +53,7 @@
         </div>
 
         <!-- Error Display -->
-        <div v-if="connectionStatus && connectionStatus.type === 'error'" class="error-overlay">
+        <div v-if="showErrorOverlay" class="error-overlay">
             <div class="error-message">
                 <h3>⚠️ Connection Error</h3>
                 <p>{{ connectionStatus.message }}</p>
