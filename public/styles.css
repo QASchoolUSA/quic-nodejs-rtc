@@ -763,16 +763,20 @@ header h1 {
 /* Overlay controls on video */
 .overlay-controls {
     position: absolute;
-    z-index: 200; /* above videos */
+    z-index: 260; /* above videos and below label */
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    flex-wrap: nowrap;
+    gap: var(--control-gap, 0.6rem);
+    padding: 0.6rem 0.9rem;
     border-radius: 24px;
     background: rgba(32, 33, 36, 0.6);
     backdrop-filter: saturate(180%) blur(8px);
     box-shadow: 0 6px 24px rgba(0,0,0,0.25);
-    flex-wrap: wrap;
+    --control-size: clamp(3rem, 6vw, 3.5rem); /* min 48px for touch */
+    --control-gap: clamp(0.4rem, 1.2vw, 0.75rem);
+    max-width: calc(100% - 1rem);
+    white-space: nowrap;
 }
 
 /* Position variants */
@@ -795,12 +799,40 @@ header h1 {
 
 /* Ensure buttons remain visible and interactive */
 .overlay-controls .control-group {
+    display: flex;
+    align-items: center;
+    gap: var(--control-gap);
     background: rgba(42, 42, 42, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.12);
+    flex-wrap: nowrap;
 }
 
 .overlay-controls .control-btn {
     outline: none;
+    flex: 0 0 auto;
+}
+
+/* Responsive sizes for buttons inside overlay */
+.overlay-controls .control-btn.main-btn {
+    width: var(--control-size);
+    height: var(--control-size);
+    min-width: var(--control-size);
+    min-height: var(--control-size);
+}
+.overlay-controls .control-btn.secondary-btn {
+    width: calc(var(--control-size) * 0.75);
+    height: calc(var(--control-size) * 0.75);
+    min-width: calc(var(--control-size) * 0.75);
+    min-height: calc(var(--control-size) * 0.75);
+    border-radius: 999px;
+}
+.overlay-controls .control-btn svg {
+    width: calc(var(--control-size) * 0.5);
+    height: calc(var(--control-size) * 0.5);
+}
+.overlay-controls .control-btn.secondary-btn svg {
+    width: calc(var(--control-size) * 0.4);
+    height: calc(var(--control-size) * 0.4);
 }
 
 /* Responsive adjustments */
@@ -1371,16 +1403,30 @@ header h1 {
         transform: translate(-50%, -50%);
     }
     .label-top-left {
-        top: 12px;
-        left: 12px;
+        top: 1rem;
+        left: 1rem;
     }
     
     @media (max-width: 768px) {
         .transport-label {
-            font-size: 0.8rem;
-            padding: 8px 14px;
+            font-size: 0.85rem;
+            padding: 0.5rem 0.9rem;
         }
-        .label-top-left { top: 10px; left: 10px; }
+        .label-top-left { top: 0.75rem; left: 0.75rem; }
+    }
+    
+    /* Enhanced breakpoints for controls sizing */
+    @media (max-width: 767px) {
+        .overlay-controls { --control-size: 3rem; --control-gap: 0.5rem; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .overlay-controls { --control-size: 3.25rem; --control-gap: 0.6rem; }
+    }
+    @media (min-width: 1024px) and (max-width: 1439px) {
+        .overlay-controls { --control-size: 3.25rem; --control-gap: 0.7rem; }
+    }
+    @media (min-width: 1440px) {
+        .overlay-controls { --control-size: 3.5rem; --control-gap: 0.8rem; }
     }
     
     .controls {
