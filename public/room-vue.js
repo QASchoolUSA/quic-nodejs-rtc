@@ -32,6 +32,11 @@ createApp({
             // Add a short grace period for participants right after join
             isJoining: false,
             joinGraceTimeoutId: null,
+            // New: network confirmation and error debounce
+            connectionConfirmed: false,
+            errorDebounceId: null,
+            errorDebounceDelay: 500,
+            pendingErrorMessage: null,
             
             // WebRTC client
             webrtcClient: null,
@@ -70,7 +75,8 @@ createApp({
                     } catch (error) {
                         console.error("Initialization failed:", error);
                     } finally {
-                        this.isInitializing = false;
+                        // Keep loading state until network status is confirmed
+                        // this.isInitializing will be set to false in onNetworkStatus when online
                     }
                 },
             methods: {
@@ -188,6 +194,14 @@ createApp({
                     
                                 this.webrtcClient.on('audioToggled', (isEnabled) => {
                                     this.micEnabled = isEnabled;
+                                });
+
+                                // Network status and error events
+                                this.webrtcClient.on('network', ({ online }) => {
+                                    this.onNetworkStatus(online);
+                                });
+                                this.webrtcClient.on('error', (message) => {
+                                    this.onClientError(message);
                                 });                    
                     // Initialize WebRTC and return the promise
                     return this.webrtcClient.init().then(() => {
@@ -495,6 +509,25 @@ createApp({
             if ((this.isInitializing || this.isJoining) && type === 'error') {
                 type = 'warning';
             }
+
+            // For errors, debounce for minimum 500ms to avoid transient flashes
+            if (type === 'error') {
+                if (this.errorDebounceId) {
+                    clearTimeout(this.errorDebounceId);
+                    this.errorDebounceId = null;
+                }
+                this.pendingErrorMessage = message;
+                this.errorDebounceId = setTimeout(() => {
+                    // Only show if not initializing or joining anymore
+                    if (!this.isInitializing && !this.isJoining) {
+                        this.connectionStatus = { message: this.pendingErrorMessage, type: 'error' };
+                    }
+                    this.pendingErrorMessage = null;
+                    this.errorDebounceId = null;
+                }, this.errorDebounceDelay);
+                return;
+            }
+
             this.connectionStatus = { message, type };
             
             // Auto-hide after 5 seconds for non-error messages
@@ -505,6 +538,33 @@ createApp({
                     }
                 }, 5000);
             }
+        },
+        
+        // Handle network status to keep loading state until confirmed
+        onNetworkStatus(online) {
+            if (online) {
+                this.connectionConfirmed = true;
+                // Drop initializing state now that network is confirmed
+                this.isInitializing = false;
+                // Cancel any pending error display
+                if (this.errorDebounceId) {
+                    clearTimeout(this.errorDebounceId);
+                    this.errorDebounceId = null;
+                    this.pendingErrorMessage = null;
+                }
+                // If an error is currently shown, clear it
+                if (this.connectionStatus && this.connectionStatus.type === 'error') {
+                    this.connectionStatus = null;
+                }
+            } else {
+                // Schedule a debounced error if we lose the network
+                this.showConnectionStatus('Network disconnected. Attempting to reconnect…', 'error');
+            }
+        },
+
+        // Route client-emitted errors through the debounced status handler
+        onClientError(message) {
+            this.showConnectionStatus(message || 'Connection error', 'error');
         },
         
         updateConnectionQuality(quality) {
@@ -519,70 +579,65 @@ createApp({
                 excellent: 'success',
                 good: 'success',
                 fair: 'warning',
-                poor: 'error'
+                poor: 'warning'
             };
             
-            if (quality !== 'excellent') {
-                this.showConnectionStatus(
-                    qualityMessages[quality] || 'Connection issues detected',
-                    qualityTypes[quality] || 'warning'
-                );
-            }
+            const message = qualityMessages[quality] || 'Connection status updated';
+            const type = qualityTypes[quality] || 'success';
+            
+            this.showConnectionStatus(message, type);
         },
 
         setAppHeight() {
-            const appHeight = window.innerHeight + 'px';
-            document.documentElement.style.setProperty('--app-height', appHeight);
+            const appHeight = () => {
+                const doc = document.documentElement;
+                doc.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+            };
+            appHeight();
         },
-
-        // Fullscreen methods
+        
         enterFocused(peerId) {
             this.focusedPeerId = peerId;
-            this.updateVideoGridLayout();
         },
-
+        
         onTileTap(peerId) {
             const now = Date.now();
-            if (now - this.lastTapTs < this.doubleTapThreshold) {
+            if (this.lastTapTs && now - this.lastTapTs < this.doubleTapThreshold) {
                 this.enterFocused(peerId);
+                this.lastTapTs = 0;
+            } else {
+                this.lastTapTs = now;
             }
-            this.lastTapTs = now;
         },
-
+        
         exitFocused() {
             this.focusedPeerId = null;
-            this.updateVideoGridLayout();
         },
-
-        // Remote control methods for room creator
+        
         toggleRemoteControls() {
             this.showRemoteControls = !this.showRemoteControls;
         },
-
+        
         controlRemoteVideo(peerId, enable) {
-            if (this.webrtcClient && this.isRoomCreator) {
+            if (this.webrtcClient) {
                 this.webrtcClient.sendRemoteControl(peerId, 'video', enable);
             }
         },
-
+        
         controlRemoteAudio(peerId, enable) {
-            if (this.webrtcClient && this.isRoomCreator) {
+            if (this.webrtcClient) {
                 this.webrtcClient.sendRemoteControl(peerId, 'audio', enable);
             }
         },
     },
     
     beforeUnmount() {
-        if (this.webrtcClient) {
-            this.webrtcClient.leaveRoom();
-        }
-        if (this.joinGraceTimeoutId) {
-            clearTimeout(this.joinGraceTimeoutId);
-            this.joinGraceTimeoutId = null;
-        }
         window.removeEventListener('resize', this.setAppHeight);
         if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
             navigator.mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
+        }
+        if (this.webrtcClient) {
+            this.webrtcClient.leaveRoom();
         }
     }
 }).mount('#app');

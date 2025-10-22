@@ -160,13 +160,20 @@ class WebRTCClient {
         });
 
         // Connection events
-        this.socket.on('connect', () => {});
+        this.socket.on('connect', () => {
+            // Notify Vue layer that network is online
+            this.emit('network', { online: true });
+        });
 
-        this.socket.on('disconnect', () => {});
+        this.socket.on('disconnect', () => {
+            // Notify Vue layer that network is offline
+            this.emit('network', { online: false });
+        });
 
         this.socket.on('error', (error) => {
             console.error('Socket error:', error);
-            this.showError('Connection error: ' + error.message);
+            // Emit error to Vue layer; Vue will handle debounce and overlay logic
+            this.emit('error', 'Connection error: ' + (error.message || 'unknown'));
         });
 
         // Handle remote control commands
@@ -299,15 +306,16 @@ class WebRTCClient {
                 dataChannel: dataChannel || null
             });
 
-            // If initiator, create and send offer
+            // If we initiated, create an offer
             if (isInitiator) {
-                this.createOffer(userId);
+                this.createOffer(userId).catch(err => {
+                    console.error('Error creating offer:', err);
+                    this.emit('error', 'Error creating offer: ' + err.message);
+                });
             }
-
-
-            
         } catch (error) {
             console.error('Error creating peer connection:', error);
+            this.emit('error', 'Error creating peer connection: ' + error.message);
         }
     }
 
