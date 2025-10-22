@@ -21,52 +21,36 @@ A modern video conferencing application built with WebRTC and WebTransport (QUIC
 - **Encryption**: Web Crypto API (AES-256-GCM, ECDH)
 - **Security**: HTTPS/TLS, Self-signed certificates for development
 
-## 📋 Prerequisites
+## Getting Started
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Modern web browser with WebRTC support
-- OpenSSL (for certificate generation)
+### Prerequisites
 
-## 🔧 Installation
+- Node.js (v18.0.0 or higher)
+- npm (usually comes with Node.js)
 
-1. **Clone or navigate to the project directory**
+### Installation
+
+1. Clone the repository:
    ```bash
-   cd /Users/nikitakedrov/Quic-RTC
+   git clone https://github.com/your-username/quic-rtc-meet.git
    ```
-
-2. **Install dependencies**
+2. Navigate to the project directory:
+   ```bash
+   cd quic-rtc-meet
+   ```
+3. Install the dependencies:
    ```bash
    npm install
    ```
 
-3. **Generate SSL certificates** (already done)
-   ```bash
-   mkdir -p certs
-   openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/C=US/ST=CA/L=San Francisco/O=QuicRTC/CN=localhost"
-   ```
+### Running the Application
 
-4. **Configure environment variables**
-   - Copy `.env` file and modify as needed
-   - Default ports: HTTP (3000), HTTPS (3443)
-
-## 🚀 Running the Application
-
-1. **Start the server**
+1. Start the server:
    ```bash
    npm start
-   # or
-   node server.js
    ```
+2. Open your browser and navigate to `https://localhost:3000` to see the application in action.
 
-2. **Access the application**
-   - **HTTPS (Recommended)**: https://localhost:3443
-   - **HTTP (Fallback)**: http://localhost:3000
-
-3. **Accept the self-signed certificate**
-   - Your browser will show a security warning
-   - Click "Advanced" → "Proceed to localhost (unsafe)"
-   - This is safe for development purposes
 
 ## 🔐 Security Features
 

@@ -11,6 +11,7 @@ class WebRTCClient {
         this.isAudioEnabled = true;
         this.isVideoEnabled = false;
         this.currentCameraDeviceId = null;
+        this.currentMicDeviceId = null;
         this.dataChannels = new Map();
         
         // Event emitter for Vue.js integration
@@ -466,10 +467,8 @@ class WebRTCClient {
     async switchCamera(deviceId) {
         try {
             console.log('WebRTC switchCamera called with deviceId:', deviceId);
-            
             // Store the new camera device ID
             this.currentCameraDeviceId = deviceId;
-            
             // Stop current video track
             if (this.localStream) {
                 const videoTrack = this.localStream.getVideoTracks()[0];
@@ -478,59 +477,100 @@ class WebRTCClient {
                     console.log('Stopped current video track');
                 }
             }
-            
             // Get new stream with selected camera
             const constraints = {
                 audio: this.isAudioEnabled,
                 video: { deviceId: { exact: deviceId } }
             };
-            
             console.log('Getting new stream with constraints:', constraints);
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
             const newVideoTrack = newStream.getVideoTracks()[0];
             const newAudioTrack = newStream.getAudioTracks()[0];
-            
             // Update local stream
             if (this.localStream) {
-                // Create new stream with existing audio state and new video
                 const oldAudioTrack = this.localStream.getAudioTracks()[0];
                 this.localStream = new MediaStream();
-                
-                // Add audio track (preserve existing audio or use new one)
                 if (oldAudioTrack && oldAudioTrack.readyState === 'live') {
                     this.localStream.addTrack(oldAudioTrack);
                 } else if (newAudioTrack) {
                     this.localStream.addTrack(newAudioTrack);
                 }
-                
-                // Add new video track
                 this.localStream.addTrack(newVideoTrack);
             } else {
                 this.localStream = newStream;
             }
-            
             console.log('Updated local stream with new video track');
-            
-            // Emit local stream update for Vue.js to handle video element update
             this.emit('localStreamUpdated', this.localStream);
-            
-            // Replace video track for all peer connections
             const replacePromises = [];
             this.peers.forEach((peer) => {
                 const sender = peer.peerConnection.getSenders().find(s => 
                     s.track && s.track.kind === 'video'
                 );
-                
                 if (sender) {
                     replacePromises.push(sender.replaceTrack(newVideoTrack));
                 }
             });
-            
             await Promise.all(replacePromises);
             console.log('Camera switched successfully for all peer connections');
             return true;
         } catch (error) {
             console.error('Error switching camera:', error);
+            throw error;
+        }
+    }
+
+    // Microphone switching
+    async switchMicrophone(deviceId) {
+        try {
+            console.log('WebRTC switchMicrophone called with deviceId:', deviceId);
+            this.currentMicDeviceId = deviceId;
+            const prevEnabled = this.isAudioEnabled;
+            // Stop current audio track
+            if (this.localStream) {
+                const audioTrack = this.localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.stop();
+                    console.log('Stopped current audio track');
+                }
+            }
+            // Get new audio stream with selected microphone
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: { deviceId: { exact: deviceId } }
+            });
+            const newAudioTrack = audioStream.getAudioTracks()[0];
+            if (!newAudioTrack) {
+                throw new Error('No audio track from selected microphone');
+            }
+            newAudioTrack.enabled = prevEnabled;
+            // Update local stream while preserving video
+            if (this.localStream) {
+                const videoTrack = this.localStream.getVideoTracks()[0];
+                const updatedStream = new MediaStream();
+                updatedStream.addTrack(newAudioTrack);
+                if (videoTrack && videoTrack.readyState === 'live') {
+                    updatedStream.addTrack(videoTrack);
+                }
+                this.localStream = updatedStream;
+            } else {
+                this.localStream = new MediaStream([newAudioTrack]);
+            }
+            // Emit update for UI
+            this.emit('localStreamUpdated', this.localStream);
+            // Replace audio track in all peer connections
+            const replacePromises = [];
+            this.peers.forEach((peer) => {
+                const sender = peer.peerConnection.getSenders().find(s => 
+                    s.track && s.track.kind === 'audio'
+                );
+                if (sender) {
+                    replacePromises.push(sender.replaceTrack(newAudioTrack));
+                }
+            });
+            await Promise.all(replacePromises);
+            console.log('Microphone switched successfully for all peer connections');
+            return true;
+        } catch (error) {
+            console.error('Error switching microphone:', error);
             throw error;
         }
     }

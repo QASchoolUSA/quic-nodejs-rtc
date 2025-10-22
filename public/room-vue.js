@@ -29,12 +29,19 @@ createApp({
             // Connection
             connectionStatus: null,
             isInitializing: true,
+            // Add a short grace period for participants right after join
+            isJoining: false,
+            joinGraceTimeoutId: null,
             
             // WebRTC client
             webrtcClient: null,
 
-            // Fullscreen state
+            // Focused view state
+            focusedPeerId: null,
+            lastTapTs: 0,
+            doubleTapThreshold: 300,
             fullscreenPeerId: null,
+            isRoomCreator: false,
         };
     },
                 async mounted() {
@@ -52,6 +59,11 @@ createApp({
                         
                         // Get available devices now that permissions are granted
                         await this.getAvailableDevices();
+
+                        // Listen for devices being added/removed (e.g., connecting AirPods)
+                        if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+                            navigator.mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
+                        }
                         
                         // Join the room
                         this.joinRoom();
@@ -75,10 +87,23 @@ createApp({
                         const urlParams = new URLSearchParams(window.location.search);
                         this.isRoomCreator = urlParams.get('creator') === 'true';
                         
+                        // Start a brief grace period to avoid flashing error overlays
+                        this.isJoining = true;
+                        if (this.joinGraceTimeoutId) clearTimeout(this.joinGraceTimeoutId);
+                        this.joinGraceTimeoutId = setTimeout(() => {
+                            this.isJoining = false;
+                            this.joinGraceTimeoutId = null;
+                        }, 4000);
+                        
                         this.webrtcClient.joinRoom(this.roomId, { 
                             name: this.localUserName,
                             isCreator: this.isRoomCreator 
                         });
+
+                        // Auto-copy a clean room link for the creator
+                        if (this.isRoomCreator) {
+                            this.copyRoomLink();
+                        }
                     }
                 },
         
@@ -97,24 +122,25 @@ createApp({
                         .map(([name]) => name);
                     
                     if (missingAPIs.length > 0) {
-                        this.showConnectionStatus(
-                            `Missing required APIs: ${missingAPIs.join(', ')}. Please use a modern browser.`,
-                            'error'
-                        );
+                        // Keep message minimal during preflight; actual init will surface detailed errors
+                        console.warn('Missing required APIs:', missingAPIs.join(', '));
                         return false;
                     }
                     
-                    // Check if running on HTTPS or localhost
-                    const isSecure = location.protocol === 'https:' || 
-                                   location.hostname === 'localhost' || 
-                                   location.hostname === '127.0.0.1';
+                    // Consider secure contexts and common local IPs as acceptable for dev
+                    const hostname = location.hostname;
+                    const isLocalIp = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(hostname);
+                    const isDevHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || isLocalIp;
+                    const isSecure = window.isSecureContext || location.protocol === 'https:' || isDevHost;
                     
                     if (!isSecure) {
+                        // Show a non-blocking warning instead of an error to avoid flashing the error overlay
                         this.showConnectionStatus(
-                            'WebRTC requires HTTPS or localhost. Please access via HTTPS or localhost.',
-                            'error'
+                            'Tip: Use HTTPS or localhost for best camera/mic support.',
+                            'warning'
                         );
-                        return false;
+                        // Proceed anyway; getUserMedia may still work depending on browser
+                        return true;
                     }
                     
                     return true;
@@ -244,13 +270,56 @@ createApp({
         
                         if (this.availableCameras.length > 0 && this.webrtcClient && !this.webrtcClient.currentCameraDeviceId) {
                             this.webrtcClient.currentCameraDeviceId = this.availableCameras[0].deviceId;
+                            this.currentCameraIndex = 0;
                         }
                         if (this.availableMics.length > 0 && this.webrtcClient && !this.webrtcClient.currentMicDeviceId) {
                             this.webrtcClient.currentMicDeviceId = this.availableMics[0].deviceId;
+                            this.currentMicIndex = 0;
                         }
                     } catch (error) {
                         console.error('Error getting available devices:', error);
                         this.showConnectionStatus('Could not list media devices.', 'error');
+                    }
+                },
+
+                async handleDeviceChange() {
+                    try {
+                        console.log('Media devices changed — re-enumerating...');
+                        await this.getAvailableDevices();
+                        
+                        // Keep current mic selection if still present
+                        const currentMicId = this.webrtcClient?.currentMicDeviceId;
+                        if (currentMicId) {
+                            const idx = this.availableMics.findIndex(d => d.deviceId === currentMicId);
+                            if (idx !== -1) {
+                                this.currentMicIndex = idx;
+                            } else if (this.availableMics.length > 0) {
+                                // Active mic disconnected, switch to first available
+                                this.currentMicIndex = 0;
+                                const firstMic = this.availableMics[0];
+                                if (firstMic && this.webrtcClient) {
+                                    await this.webrtcClient.switchMicrophone(firstMic.deviceId);
+                                    this.showConnectionStatus(`Microphone changed to ${firstMic.label || 'default'}`, 'success');
+                                }
+                            }
+                        }
+                        
+                        // Update camera index if needed (do not auto-switch camera to avoid surprises)
+                        const currentCamId = this.webrtcClient?.currentCameraDeviceId;
+                        if (currentCamId) {
+                            const camIdx = this.availableCameras.findIndex(d => d.deviceId === currentCamId);
+                            if (camIdx !== -1) {
+                                this.currentCameraIndex = camIdx;
+                            } else if (this.availableCameras.length > 0) {
+                                this.currentCameraIndex = 0;
+                            }
+                        }
+                        
+                        // Update dropdown visibility if counts changed
+                        if (this.availableMics.length <= 1) this.showMicDropdown = false;
+                        if (this.availableCameras.length <= 1) this.showCameraDropdown = false;
+                    } catch (error) {
+                        console.error('Error handling device change:', error);
                     }
                 },
         // Camera dropdown methods
@@ -374,6 +443,15 @@ createApp({
                 });
             }
             
+            // End join grace period once we have a remote stream
+            if (this.isJoining) {
+                this.isJoining = false;
+                if (this.joinGraceTimeoutId) {
+                    clearTimeout(this.joinGraceTimeoutId);
+                    this.joinGraceTimeoutId = null;
+                }
+            }
+            
             // Update participant count
             this.participantCount = this.remotePeers.length + 1;
             
@@ -402,17 +480,20 @@ createApp({
             }
         },
 
-        // Update video grid layout class for better browser compatibility
         updateVideoGridLayout() {
             this.$nextTick(() => {
                 const videoGrid = this.$refs.videoGrid;
                 if (videoGrid) {
-                    // Remove existing layout classes
-                    videoGrid.classList.remove('layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5', 'layout-6', 'layout-7', 'layout-8', 'layout-9');
-                    
-                    // Add appropriate layout class based on total participants (including local)
-                    const totalParticipants = this.remotePeers.length + 1; // +1 for local user
-                    videoGrid.classList.add(`layout-${totalParticipants}`);
+                    const totalParticipants = this.remotePeers.length + 1;
+                    let cols = 1;
+                    if (totalParticipants === 2) {
+                        cols = 2;
+                    } else if (totalParticipants >= 3 && totalParticipants <= 4) {
+                        cols = 2;
+                    } else if (totalParticipants >= 5 && totalParticipants <= 9) {
+                        cols = 3;
+                    }
+                    videoGrid.style.setProperty('--cols', cols);
                 }
             });
         },
@@ -421,11 +502,32 @@ createApp({
         async copyRoomLink() {
             const roomLink = `${window.location.origin}/room.html?room=${this.roomId}`;
             try {
-                await navigator.clipboard.writeText(roomLink);
-                this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(roomLink);
+                    this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                } else {
+                    // Fallback: try execCommand copy (may require user gesture)
+                    const textarea = document.createElement('textarea');
+                    textarea.value = roomLink;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    const ok = document.execCommand && document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    if (ok) {
+                        this.showConnectionStatus('Room link copied to clipboard!', 'success');
+                    } else {
+                        // Do not show an error overlay here; just a gentle prompt
+                        this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
+                    }
+                }
             } catch (error) {
                 console.error('Failed to copy room link:', error);
-                this.showConnectionStatus('Failed to copy room link', 'error');
+                // Avoid flashing error overlay for non-critical copy failures
+                this.showConnectionStatus('Couldn’t auto-copy. Tap to copy from the address bar.', 'warning');
             }
         },
         
@@ -437,6 +539,10 @@ createApp({
         },
         
         showConnectionStatus(message, type) {
+            // During initial load and early join handshake, downgrade errors to warnings
+            if ((this.isInitializing || this.isJoining) && type === 'error') {
+                type = 'warning';
+            }
             this.connectionStatus = { message, type };
             
             // Auto-hide after 5 seconds for non-error messages
@@ -478,13 +584,21 @@ createApp({
         },
 
         // Fullscreen methods
-        enterFullscreen(peerId) {
-            if (window.innerWidth > 768) return; // Only on mobile
-            this.fullscreenPeerId = peerId;
+        enterFocused(peerId) {
+            this.focusedPeerId = peerId;
+            this.updateVideoGridLayout();
         },
 
-        exitFullscreen() {
-            this.fullscreenPeerId = null;
+        onTileTap(peerId) {
+            const now = Date.now();
+            if (now - this.lastTapTs < this.doubleTapThreshold) {
+                this.enterFocused(peerId);
+            }
+            this.lastTapTs = now;
+        },
+
+        exitFocused() {
+            this.focusedPeerId = null;
             this.updateVideoGridLayout();
         },
 
@@ -510,6 +624,13 @@ createApp({
         if (this.webrtcClient) {
             this.webrtcClient.leaveRoom();
         }
+        if (this.joinGraceTimeoutId) {
+            clearTimeout(this.joinGraceTimeoutId);
+            this.joinGraceTimeoutId = null;
+        }
         window.removeEventListener('resize', this.setAppHeight);
+        if (navigator.mediaDevices && navigator.mediaDevices.removeEventListener) {
+            navigator.mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
+        }
     }
 }).mount('#app');
