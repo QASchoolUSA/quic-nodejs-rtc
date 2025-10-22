@@ -44,8 +44,6 @@ createApp({
             isRoomCreator: false,
             showRemoteControls: false,
             overlayPosition: 'overlay-bottom-center',
-            transportType: 'websocket',
-            transportLabelPosition: 'top-left',
         };
     },
                 async mounted() {
@@ -209,8 +207,7 @@ createApp({
                     return this.webrtcClient.init().then(() => {
                         console.log('WebRTC client initialized');
                         // Set transport type label based on runtime capability/use
-                        this.transportType = this.webrtcClient.useWebTransport ? 'quic' : 'websocket';
-                        this.showConnectionStatus('Connected to server', 'success');
+                                this.showConnectionStatus('Connected to server', 'success');
                     }).catch(error => {
                         console.error('Failed to initialize WebRTC:', error);
                         if (error.name === 'NotAllowedError') {

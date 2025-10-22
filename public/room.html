@@ -32,9 +32,6 @@
                     playsinline
                     preload="none"
                 ></video>
-                <div :class="['transport-label', transportType === 'quic' ? 'label-quic' : 'label-websocket', transportLabelPosition === 'center' ? 'label-center' : 'label-top-left']">
-                    {{ transportType === 'quic' ? 'QUIC' : 'WebSocket' }}
-                </div>
                 <div class="video-label">{{ localUserName || 'You' }}</div>
             </div>
             <!-- Remote videos will be added dynamically -->
