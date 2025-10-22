@@ -754,31 +754,22 @@ header h1 {
 
 /* Overlay controls on video */
 .overlay-controls {
-    position: absolute;
-    z-index: 2400; /* above focused video container */
+    position: fixed;
+    z-index: 2400; /* above video content */
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
     gap: var(--control-gap, 0.6rem);
     padding: 0.6rem 0.9rem;
     border-radius: 24px;
-    background: rgba(32, 33, 36, 0.6);
-    backdrop-filter: saturate(180%) blur(8px);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+    background: rgba(20, 20, 22, 0.45);
+    backdrop-filter: saturate(180%) blur(10px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     --control-size: clamp(3rem, 6vw, 3.5rem); /* min 48px for touch */
     --control-gap: clamp(0.4rem, 1.2vw, 0.75rem);
-    max-width: calc(100% - 1rem);
-    white-space: nowrap;
-}
-
-/* In focused mode, pin controls to viewport bottom above safe area */
-.video-grid.focused-active ~ .overlay-controls {
-    position: fixed;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
     max-width: min(100vw - 24px, 900px);
+    white-space: nowrap;
 }
 
 
@@ -1281,85 +1272,6 @@ header h1 {
     z-index: -1;
 }
 
-/* FaceTime-like layout */
-.video-grid.facetime-active {
-    padding: 0;
-}
-.video-grid.facetime-active .video-container.primary {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: calc(var(--vh, 1vh) * 100);
-    background: #000;
-    z-index: 1700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.video-grid.facetime-active .video-container.primary video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background-color: #000;
-}
-
-.video-grid.facetime-active .video-container.pip {
-    position: fixed;
-    z-index: 2401; /* above overlays */
-    width: clamp(160px, 20vw, 240px);
-    height: auto;
-    aspect-ratio: 16 / 9; /* default */
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-    border: 1px solid rgba(255,255,255,0.15);
-    background: #000;
-    will-change: top, left, transform;
-    transition: transform 200ms ease, opacity 200ms ease;
-}
-.video-grid.facetime-active .video-container.pip.landscape { aspect-ratio: 16 / 9; }
-.video-grid.facetime-active .video-container.pip.portrait { aspect-ratio: 9 / 16; }
-.video-grid.facetime-active .video-container.pip.square { aspect-ratio: 1 / 1; }
-.video-grid.facetime-active .video-container.pip video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-/* PIP corner positions with safe-area support */
-.video-grid.facetime-active .video-container.pip.pip-top-right {
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    right: calc(env(safe-area-inset-right, 0px) + 12px);
-}
-.video-grid.facetime-active .video-container.pip.pip-top-left {
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    left: calc(env(safe-area-inset-left, 0px) + 12px);
-}
-.video-grid.facetime-active .video-container.pip.pip-bottom-right {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    right: calc(env(safe-area-inset-right, 0px) + 12px);
-}
-.video-grid.facetime-active .video-container.pip.pip-bottom-left {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    left: calc(env(safe-area-inset-left, 0px) + 12px);
-}
-/* Allow custom dragged positions by clearing corner anchors */
-.video-grid.facetime-active .video-container.pip.pip-custom {
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-}
-.video-grid.facetime-active .video-container.pip.pip-bottom-left {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-    left: calc(env(safe-area-inset-left, 0px) + 12px);
-}
-
-/* Hide non-primary/non-secondary tiles in FaceTime mode */
-.video-grid.facetime-active .video-container:not(.primary):not(.pip) {
-    opacity: 0;
-    pointer-events: none;
-}
 
 /* Mobile-specific focused mode overrides */
 @media (max-width: 768px) {
