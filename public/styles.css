@@ -1237,8 +1237,8 @@ header h1 {
 
 /* Video element sizing in focused mode */
 .video-grid.focused-active .video-container.focused video {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     transition: transform 300ms ease;
 }
@@ -1297,7 +1297,6 @@ header h1 {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
-        height: 100vh !important;
         height: calc(var(--vh, 1vh) * 100) !important;
         aspect-ratio: auto !important;
         border-radius: 0 !important;
@@ -1310,31 +1309,11 @@ header h1 {
     
     /* Video sizing in mobile focused mode */
     .video-grid.focused-active .video-container.focused video {
-        max-width: 100% !important;
-        max-height: 100% !important;
-        width: auto !important;
-        height: auto !important;
+        width: 100% !important;
+        height: calc(var(--vh, 1vh) * 100) !important;
+        max-height: calc(var(--vh, 1vh) * 100) !important;
         object-fit: contain !important;
         aspect-ratio: auto !important;
-    }
-    
-    /* Mobile aspect-aware rules with higher specificity */
-    .video-grid.focused-active .video-container.focused.portrait video {
-        height: 100vh !important;
-        height: calc(var(--vh, 1vh) * 100) !important;
-        width: auto !important;
-    }
-    
-    .video-grid.focused-active .video-container.focused.landscape video {
-        width: 100vw !important;
-        height: auto !important;
-    }
-    
-    .video-grid.focused-active .video-container.focused.square video {
-        width: min(100vw, 100vh) !important;
-        width: min(100vw, calc(var(--vh, 1vh) * 100)) !important;
-        height: min(100vw, 100vh) !important;
-        height: min(100vw, calc(var(--vh, 1vh) * 100)) !important;
     }
 }
 
