@@ -49,6 +49,8 @@ createApp({
             isRoomCreator: false,
             showRemoteControls: false,
             overlayPosition: 'overlay-bottom-center',
+            // Aspect ratio classes for focused sizing
+            aspectClasses: {},
         };
     },
                 async mounted() {
@@ -167,6 +169,10 @@ createApp({
                             const localVideo = this.$refs.localVideo;
                             if (localVideo) {
                                 localVideo.srcObject = stream;
+                                // Detect aspect once metadata is available
+                                localVideo.addEventListener('loadedmetadata', () => {
+                                    this.assignAspectClass('local', localVideo);
+                                }, { once: true });
                             }
                         });
                     });
@@ -177,6 +183,13 @@ createApp({
                             const localVideo = this.$refs.localVideo;
                             if (localVideo) {
                                 localVideo.srcObject = stream;
+                                // Re-evaluate aspect on updates
+                                const handler = () => this.assignAspectClass('local', localVideo);
+                                if (localVideo.readyState >= 1) {
+                                    handler();
+                                } else {
+                                    localVideo.addEventListener('loadedmetadata', handler, { once: true });
+                                }
                             }
                         });
                     });
@@ -229,6 +242,12 @@ createApp({
                 },
                 
                 setupEventListeners() {
+                    // Handle Escape key to exit focused view
+                    window.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.focusedPeerId) {
+                            this.exitFocused();
+                        }
+                    });
                     // Handle page unload
                     window.addEventListener('beforeunload', () => {
                         if (this.webrtcClient) {
@@ -467,7 +486,15 @@ createApp({
             this.$nextTick(() => {
                 const videoElement = this.$refs[`remoteVideo-${peerId}`];
                 if (videoElement && videoElement[0]) {
-                    videoElement[0].srcObject = stream;
+                    const el = videoElement[0];
+                    el.srcObject = stream;
+                    // Detect aspect for remote once metadata ready
+                    const handler = () => this.assignAspectClass(peerId, el);
+                    if (el.readyState >= 1) {
+                        handler();
+                    } else {
+                        el.addEventListener('loadedmetadata', handler, { once: true });
+                    }
                 } else {
                     console.warn(`Could not find video element for peer ${peerId}`);
                 }
@@ -501,6 +528,25 @@ createApp({
                     videoGrid.style.setProperty('--cols', cols);
                 }
             });
+        },
+        
+        // Compute and assign aspect class for focused sizing
+        assignAspectClass(id, videoEl) {
+            try {
+                const w = videoEl.videoWidth;
+                const h = videoEl.videoHeight;
+                if (!w || !h) {
+                    setTimeout(() => this.assignAspectClass(id, videoEl), 100);
+                    return;
+                }
+                const ratio = w / h;
+                let cls = 'square';
+                if (ratio > 1.1) cls = 'landscape';
+                else if (ratio < 0.9) cls = 'portrait';
+                this.aspectClasses = { ...this.aspectClasses, [id]: cls };
+            } catch (e) {
+                console.warn('Failed to evaluate aspect for', id, e);
+            }
         },
         
         // Utility functions
@@ -610,11 +656,22 @@ createApp({
         
         onTileTap(peerId) {
             const now = Date.now();
-            if (this.lastTapTs && now - this.lastTapTs < this.doubleTapThreshold) {
-                this.enterFocused(peerId);
-                this.lastTapTs = 0;
+            if (now - this.lastTapTs <= this.doubleTapThreshold) {
+                // Double tap toggles focus
+                if (this.focusedPeerId === peerId) {
+                    this.exitFocused();
+                } else {
+                    this.enterFocused(peerId);
+                }
+            }
+            this.lastTapTs = now;
+        },
+        
+        onTileDoubleClick(peerId) {
+            if (this.focusedPeerId === peerId) {
+                this.exitFocused();
             } else {
-                this.lastTapTs = now;
+                this.enterFocused(peerId);
             }
         },
         

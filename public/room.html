@@ -20,11 +20,11 @@
         <!-- Video Grid -->
         <div class="video-grid" ref="videoGrid" :class="{ 'focused-active': focusedPeerId }">
 
-            <div class="video-container local-video"
+            <div 
+                 :class="['video-container local-video', aspectClasses['local'], { 'focused': focusedPeerId === 'local', 'hidden': focusedPeerId && focusedPeerId !== 'local' }]"
                  ref="localContainer"
-                 @dblclick="enterFocused('local')"
-                 @click="onTileTap('local')"
-                 :class="{ 'focused': focusedPeerId === 'local', 'hidden': focusedPeerId && focusedPeerId !== 'local' }">
+                 @dblclick="onTileDoubleClick('local')"
+                 @click="onTileTap('local')">
                 <video 
                     ref="localVideo" 
                     autoplay 
@@ -38,11 +38,10 @@
             <div 
                 v-for="peer in remotePeers" 
                 :key="peer.id" 
-                class="video-container remote-video"
+                :class="['video-container remote-video', aspectClasses[peer.id], { 'focused': focusedPeerId === peer.id, 'hidden': focusedPeerId && focusedPeerId !== peer.id }]"
                 :ref="`remoteContainer-${peer.id}`"
-                @dblclick="enterFocused(peer.id)"
-                @click="onTileTap(peer.id)"
-                :class="{ 'focused': focusedPeerId === peer.id, 'hidden': focusedPeerId && focusedPeerId !== peer.id }">
+                @dblclick="onTileDoubleClick(peer.id)"
+                @click="onTileTap(peer.id)">
                 <video 
                     :ref="`remoteVideo-${peer.id}`"
                     autoplay 
@@ -50,6 +49,7 @@
                     preload="none"
                 ></video>
             </div>
+            <button v-if="focusedPeerId" @click="exitFocused" class="focus-exit-btn" title="Exit Fullscreen">×</button>
         </div>
 
         <!-- Error Display -->
