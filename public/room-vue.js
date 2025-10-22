@@ -42,6 +42,7 @@ createApp({
             doubleTapThreshold: 300,
             fullscreenPeerId: null,
             isRoomCreator: false,
+            showRemoteControls: false,
         };
     },
                 async mounted() {
@@ -100,10 +101,8 @@ createApp({
                             isCreator: this.isRoomCreator 
                         });
 
-                        // Auto-copy a clean room link for the creator
-                        if (this.isRoomCreator) {
-                            this.copyRoomLink();
-                        }
+                        // Removed auto-copy; use explicit user action to copy link
+                        // this.copyRoomLink();
                     }
                 },
         
